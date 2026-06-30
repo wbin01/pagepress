@@ -1,0 +1,7 @@
+"Escreva como um documento. Publique como um site."
+PagePress
+Write like a document. Publish like a website.
+
+A static site generator that lets you build websites using ordinary office documents instead of HTML or Markdown.
+
+The goal is to make website publishing accessible to people who already know how to use a word processor.

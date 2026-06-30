@@ -1,0 +1,16 @@
+<svg id="svg1" class="src-ref-svg-icon" width="16" height="16" fill="currentColor" version="1.1" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+<g id="g2" transform="translate(0,1)">
+<path id="rect12" d="m10 9.578125v1.921875c0 0.277 0.223 0.5 0.5 0.5s0.5-0.223 0.5-0.5v-1.921875z"/>
+<path id="path4" d="M 10.5,5 A 2.5,2.5 0 0 0 8,7.5 2.5,2.5 0 0 0 10.5,10 2.5,2.5 0 0 0 13,7.5 2.5,2.5 0 0 0 10.5,5 Z m 0,0.7142857 A 1.7857143,1.7857143 0 0 1 12.285714,7.5 1.7857143,1.7857143 0 0 1 10.5,9.285714 1.7857143,1.7857143 0 0 1 8.714286,7.5 1.7857143,1.7857143 0 0 1 10.5,5.7142857 Z" stroke-width=".833336"/>
+<rect id="rect4" x="3" y="5" width="5" height="1" ry=".5" stroke-width=".866025"/>
+<rect id="rect6" x="3" y="7" width="4" height="1" ry=".5"/>
+<rect id="rect20" x="8" y="3" width="4" height="1" ry=".5" stroke-width=".866025"/>
+<rect id="rect21" x="3" y="9" width="5" height="1" ry=".5"/>
+<g id="g24" transform="translate(-1,1)">
+<path id="path22" d="M 8,1 C 7.4630228,1.3413692 7.0388004,1.9457412 7.0039062,2.4355469 7.002373,2.4570688 7,2.4789549 7,2.5 A 0.5,0.5 0 0 0 7.5,3 0.5,0.5 0 0 0 8,2.5 0.5,0.5 0 0 0 7.734375,2.0585938 Z" fill="#000" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g id="g25" transform="translate(-3,1)">
+<path id="circle24" d="M 8,1 C 7.4630228,1.3413692 7.0388004,1.9457412 7.0039062,2.4355469 7.002373,2.4570688 7,2.4789549 7,2.5 A 0.5,0.5 0 0 0 7.5,3 0.5,0.5 0 0 0 8,2.5 0.5,0.5 0 0 0 7.734375,2.0585938 Z" fill="#000" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</svg>
