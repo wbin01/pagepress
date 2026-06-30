@@ -1,5 +1,6 @@
-docs/*
-site/*
+docs/*.docx
+docs/*.conf
+site/*.html
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
