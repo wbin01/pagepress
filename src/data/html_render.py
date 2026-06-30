@@ -1,10 +1,11 @@
+#!/usr/bin/env python3
 import re
 import base64
 
 from zipfile import ZipFile
 from lxml import etree
-from docx_parser import DocxParser
-from svg_icon_to_html import SvgIconToHTML
+from .docx_parser import DocxParser
+from .svg_icon_to_html import SvgIconToHTML
 
 
 class HTMLRender(object):
