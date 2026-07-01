@@ -46,7 +46,7 @@ class Settings(object):
         tag_li = (
             space + '<li>\n' +
             space + ' <a class="dropdown-item" onclick="changeLang(#LANG)" '
-            'href="index.html">\n' +
+            'href="#lang/index.html">\n' +
             space + '  <img class="m-1" src="https://hatscripts.github.io/c'
             'ircle-flags/flags/#icon.svg" width="20" /> #lang\n' +
             space + ' </a>\n' +
@@ -61,16 +61,22 @@ class Settings(object):
         self._html_start = self._html_start.replace('<!-- LANGS -->', li_langs)
     
     def _set_index_html(self) -> None:
+        redirect = "window.location.replace(`${savedLang}/index.html`);"
         with open(self._site_path/'index.html', 'w+') as index:
-            index.write(self._html_start)
+            index.write(self._html_start.replace('// REDIRECT', redirect))
             index.write(self._html_end)
+
+        html_start = self._html_start
+        for lang in self._site_langs:
+            html_start = html_start.replace(
+                lang + '/index.html',  f'../{lang}/index.html')
 
         for lang in self._site_langs:
             file_path = self._site_path/lang/'index.html'
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
             with open(file_path, 'w+') as index:
-                index.write(self._html_start)
+                index.write(html_start)
                 index.write(self._html_end)
 
     def _set_html_base(self) -> str:
