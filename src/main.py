@@ -5,7 +5,7 @@ from pprint import pprint
 class PagePress(object):
 	def __init__(self) -> None:
 		self._sett = Settings()
-		pprint(self._sett._locales)
+		# pprint(self._sett._locales)
 
 
 if __name__ == '__main__':

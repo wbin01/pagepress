@@ -2,6 +2,10 @@ docs/*.docx
 docs/*.conf
 site/*.html
 
+docs/*.txt
+docs/*.txt
+site/*.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

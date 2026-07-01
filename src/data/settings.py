@@ -16,20 +16,73 @@ class Settings(object):
     def __init__(self) -> None:
         self._docs_path = PATH/'docs'
         self._site_path = PATH/'site'
+        self._data_path = PATH/'data'
 
         self._default_lang = locale.getdefaultlocale()[0].replace('_', '-')
         self._lang = self._default_lang  # locale.normalize(locale)
         self._locales = [x[1].split('.') for x in locale.locale_alias.items()]
         self._set_locales_file()
 
+        self._site_langs = []
+
+        self._html_start = None
+        self._html_end = None
+        self._set_html_base()
+
+        self._set_lang()
+        self._set_index_html()
+
         # self._parser = DocxParser(self._docs_path)
         # self._render = HTMLRender(self._parser)
 
+    def _set_lang(self) -> None:
+        self._site_langs = []
+        for lang_dir in os.listdir(self._docs_path):
+            if os.path.isdir(self._docs_path/lang_dir):
+                if os.listdir(self._docs_path/lang_dir):
+                    self._site_langs.append(lang_dir)
+
+        space = '         '
+        tag_li = (
+            space + '<li>\n' +
+            space + ' <a class="dropdown-item" onclick="changeLang(#LANG)" '
+            'href="index.html">\n' +
+            space + '  <img class="m-1" src="https://hatscripts.github.io/c'
+            'ircle-flags/flags/#icon.svg" width="20" /> #lang\n' +
+            space + ' </a>\n' +
+            space + '</li>\n')
+
+        li_langs = '\n'
+        for lang in self._site_langs:
+            icon, script = lang.lower().split('-')[1], f"'{lang}'"
+            li_langs += tag_li.replace(
+                '#LANG', script).replace('#lang', lang).replace('#icon', icon)
+
+        self._html_start = self._html_start.replace('<!-- LANGS -->', li_langs)
+    
+    def _set_index_html(self) -> None:
+        with open(self._site_path/'index.html', 'w+') as index:
+            index.write(self._html_start)
+            index.write(self._html_end)
+
+        for lang in self._site_langs:
+            file_path = self._site_path/lang/'index.html'
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(file_path, 'w+') as index:
+                index.write(self._html_start)
+                index.write(self._html_end)
+
+    def _set_html_base(self) -> str:
+        with open(self._data_path/'index.html', 'r') as file_:
+            html = file_.read()
+        self._html_start, self._html_end = html.split('<!-- / -->')
+
     def _hash(self, path: str):
         h = hashlib.new('md5')  # sha256
-        with open(path, 'rb') as arquivo:
+        with open(path, 'rb') as file_:
             while True:
-                data = arquivo.read(65536)
+                data = file_.read(65536)
                 if not data:
                     break
                 h.update(data)
