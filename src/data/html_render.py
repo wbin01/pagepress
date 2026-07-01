@@ -4,8 +4,11 @@ import base64
 
 from zipfile import ZipFile
 from lxml import etree
-from .docx_parser import DocxParser
 from .svg_icon_to_html import SvgIconToHTML
+
+
+class DocxParser:
+    pass
 
 
 class HTMLRender(object):
@@ -228,6 +231,7 @@ class HTMLRender(object):
 
 
 if __name__ == '__main__':
+    from .docx_parser import DocxParser
     docx = DocxParser('/home/user/Documento1.docx')
     html = HTMLRender(docx)
     print(html._title)
