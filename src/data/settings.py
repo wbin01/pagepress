@@ -41,18 +41,17 @@ class Settings(object):
             if os.path.isdir(self._docs_path/lang_dir):
                 if os.listdir(self._docs_path/lang_dir):
                     self._site_langs.append(lang_dir)
+
         space = '         '
         img_err = ("this.onerror=null; this.src='https://hatscripts.github.io/"
             "circle-flags/flags/xx.svg';")
-        img_icon = ('<i class="bi bi-translate text-muted m-1 d-none" '
-            'style="font-size: 16px;"></i>')
         tag_li = (
             space + '<li>\n' +
             space + ' <a class="dropdown-item" onclick="changeLang(#LANG)" '
             'href="#lang/index.html">\n' +
             space + '  <img class="m-1" src="https://hatscripts.github.io/c'
             f'ircle-flags/flags/#icon.svg" onerror="{img_err}" width="20" />'
-            f'{img_icon} #lang\n' +
+            ' #lang\n' +
             space + ' </a>\n' +
             space + '</li>\n')
 
@@ -62,6 +61,12 @@ class Settings(object):
             script = f"'{lang}'"
             li_langs += tag_li.replace(
                 '#LANG', script).replace('#lang', lang).replace('#icon', icon)
+
+        if len(self._site_langs) < 2:
+            self._html_start = self._html_start.replace(
+                '<a class="nav-link dropdown-toggle" id="currentLang" '
+                'href="#" role="button" data-bs-toggle="dropdown" '
+                'aria-expanded="false"> en-US </a>', '<span></span>')
 
         self._html_start = self._html_start.replace('<!-- LANGS -->', li_langs)
     
