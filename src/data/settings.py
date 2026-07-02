@@ -28,7 +28,9 @@ class Settings(object):
 
         self._langs = self._langs_code()
         self._html_nav_langs()
+        
         self._html_index()
+        self._html_nav_categs()
 
         self._clear()
 
@@ -75,6 +77,32 @@ class Settings(object):
                 'aria-expanded="false"> en-US </a>', '<span></span>')
 
         self._html_top = self._html_top.replace('<!-- LANGS -->', li_langs)
+
+    def _html_nav_categs(self) -> None:
+        for lang in self._langs:
+            with open(self._site_path/lang/'index.html', 'r') as file_:
+                index = file_.read()
+
+            li_itens = ''
+            for node in os.listdir(self._docs_path/lang):
+                if os.path.isdir(self._docs_path/lang/node):
+                    li_itens += ('\n'
+                        '     <li class="nav-item">\n'
+                        '      <a class="nav-link active" aria-current="page" '
+                        f'href="#">{node}</a>\n'
+                        '     </li>\n')
+
+            new_index = index.replace('<!-- NAV ITEM -->', li_itens)
+            with open(self._site_path/lang/'index.html', 'w+') as f:
+                f.write(new_index)
+
+    def _html_index_posts(self) -> None:
+        categs = {}
+        for lang in self._langs:
+            categs[lang] = []
+
+            for node in os.listdir(self._docs_path/lang):
+                print(node)
     
     def _html_index(self) -> None:
         index_start = self._html_top.replace(
@@ -82,7 +110,7 @@ class Settings(object):
             f'<html lang="{self._default_lang}"').replace(
             '// REDIRECT',
             "window.location.replace(`${savedLang}/index.html`);").replace(
-            '// CLEAR', '')
+            '// CLEAR', '',).replace('#BRAND', 'index.html')
 
         with open(self._site_path/'index.html', 'w+') as index:
             index.write(index_start)
@@ -93,7 +121,9 @@ class Settings(object):
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
             html_start = self._html_top.replace(
-                '<html lang="en-US"', f'<html lang="{lang}"')
+                '<html lang="en-US"', f'<html lang="{lang}"').replace(
+                '#BRAND', f'../{lang}/index.html')
+
             with open(file_path, 'w+') as index:
                 index.write(html_start)
                 index.write(self._html_end)
