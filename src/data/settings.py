@@ -20,8 +20,8 @@ class Settings(object):
 
         self._default_lang = locale.getdefaultlocale()[0].replace('_', '-')
         self._lang = self._default_lang  # locale.normalize(locale)
-        self._locales = [x[1].split('.') for x in locale.locale_alias.items()]
-        self._set_locales_file()
+        self._locales = []
+        self._set_locales()
 
         self._site_langs = []
 
@@ -41,7 +41,6 @@ class Settings(object):
             if os.path.isdir(self._docs_path/lang_dir):
                 if os.listdir(self._docs_path/lang_dir):
                     self._site_langs.append(lang_dir)
-
         space = '         '
         tag_li = (
             space + '<li>\n' +
@@ -61,9 +60,34 @@ class Settings(object):
         self._html_start = self._html_start.replace('<!-- LANGS -->', li_langs)
     
     def _set_index_html(self) -> None:
-        redirect = "window.location.replace(`${savedLang}/index.html`);"
+        redirect = (
+            f'const defaultLang = "{self._site_langs[0]}";\n'
+            "  const targetUrl = `${savedLang}/index.html`;\n"
+            "  fetch(targetUrl, { method: 'HEAD' })\n"
+            "      .then(response => {\n"
+            "          if (response.ok) {\n"
+            "              window.location.replace(targetUrl);\n"
+            "          } else {\n"
+            "              tratarIdiomaInvalido();\n"
+            "          }\n"
+            "      })\n"
+            "      .catch(() => {\n"
+            "          tratarIdiomaInvalido();\n"
+            "      });\n"
+            "\n"
+            "  function tratarIdiomaInvalido() {\n"
+            "      localStorage.setItem('page_lang', defaultLang);"
+            "      document.cookie = `lang=${defaultLang}; path=/; max-age=31536000`;\n"
+            "      window.location.replace(`${defaultLang}/index.html`);\n"
+            "  }")
+
+        html_start = self._html_start.replace(
+            '<html lang="en-US"',
+            f'<html lang="{self._site_langs[0]}"').replace(
+            '// REDIRECT', redirect)
+
         with open(self._site_path/'index.html', 'w+') as index:
-            index.write(self._html_start.replace('// REDIRECT', redirect))
+            index.write(html_start)
             index.write(self._html_end)
 
         html_start = self._html_start
@@ -94,10 +118,13 @@ class Settings(object):
                 h.update(data)
         return h.hexdigest()
 
-    def _set_locales_file(self) -> None:
+    def _set_locales(self) -> None:
+        self._locales = [
+            x[1].split('.')[0] for x in locale.locale_alias.items()]
+
         locales = []
         for local in self._locales:
-            if local[0] not in locales: locales.append(local[0])
+            if local not in locales: locales.append(local)
         
         if locales: locales.sort()
         with open(self._docs_path/'langs.txt', 'w') as local_file:
