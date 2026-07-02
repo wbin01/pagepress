@@ -2,7 +2,7 @@
 import os
 import hashlib
 import locale
-
+import shutil
 from pathlib import Path
 
 from .docx_parser import DocxParser
@@ -20,40 +20,41 @@ class Settings(object):
 
         self._default_lang = locale.getdefaultlocale()[0].replace('_', '-')
         self._lang = self._default_lang  # locale.normalize(locale)
-        self._locales = []
-        self._set_locales()
+        self._locales = self._locales_code()
 
-        self._site_langs = []
-
-        self._html_start = None
+        self._html_top = None
         self._html_end = None
-        self._set_html_base()
+        self._html_base()
 
-        self._set_lang()
-        self._set_index_html()
+        self._langs = self._langs_code()
+        self._html_nav_langs()
+        self._html_index()
+
+        self._clear()
 
         # self._parser = DocxParser(self._docs_path)
         # self._render = HTMLRender(self._parser)
 
-    def _set_lang(self) -> None:
-        self._site_langs = []
-        for lang_dir in os.listdir(self._docs_path):
-            if os.path.isdir(self._docs_path/lang_dir):
-                if os.listdir(self._docs_path/lang_dir):
-                    self._site_langs.append(lang_dir)
+    def _clear(self) -> None:
+        for node in os.listdir(self._site_path):
+            if os.path.isdir(self._site_path/node) and node not in self._langs:
+                # shutil.rmtree(self._site_path/node)
+                with open(self._data_path/'clear.html', 'r') as file_:
+                    html_clear = file_.read()
+                html_clear = html_clear.replace(
+                    'const defaultLang = "en-US";',
+                    f'const defaultLang = "{self._langs[0]}";')
+                with open(self._site_path/node/'index.html', 'w') as file_:
+                    file_.write(html_clear)
 
-        if not self._site_langs:
-            self._site_langs.append(self._default_lang)
-            file_path = self._docs_path/self._default_lang/'settings.conf'
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-
+    def _html_nav_langs(self) -> None:
         space = '         '
         img_err = ("this.onerror=null; this.src='https://hatscripts.github.io/"
             "circle-flags/flags/xx.svg';")
         tag_li = (
             space + '<li>\n' +
             space + ' <a class="dropdown-item" onclick="changeLang(#LANG)" '
-            'href="#lang/index.html">\n' +
+            'href="../#lang/index.html">\n' +
             space + '  <img class="m-1" src="https://hatscripts.github.io/c'
             f'ircle-flags/flags/#icon.svg" onerror="{img_err}" width="20" />'
             ' #lang\n' +
@@ -61,68 +62,46 @@ class Settings(object):
             space + '</li>\n')
 
         li_langs = '\n'
-        for lang in self._site_langs:
+        for lang in self._langs:
             icon = lang.lower().split('-')[1] if '-' in lang else lang.lower()
             script = f"'{lang}'"
             li_langs += tag_li.replace(
                 '#LANG', script).replace('#lang', lang).replace('#icon', icon)
 
-        if len(self._site_langs) < 2:
-            self._html_start = self._html_start.replace(
+        if len(self._langs) == 1:
+            self._html_top = self._html_top.replace(
                 '<a class="nav-link dropdown-toggle" id="currentLang" '
                 'href="#" role="button" data-bs-toggle="dropdown" '
                 'aria-expanded="false"> en-US </a>', '<span></span>')
 
-        self._html_start = self._html_start.replace('<!-- LANGS -->', li_langs)
+        self._html_top = self._html_top.replace('<!-- LANGS -->', li_langs)
     
-    def _set_index_html(self) -> None:
-        redirect = (
-            f'const defaultLang = "{self._site_langs[0]}";\n'
-            "  const targetUrl = `${savedLang}/index.html`;\n"
-            "  fetch(targetUrl, { method: 'HEAD' })\n"
-            "      .then(response => {\n"
-            "          if (response.ok) {\n"
-            "              window.location.replace(targetUrl);\n"
-            "          } else {\n"
-            "              tratarIdiomaInvalido();\n"
-            "          }\n"
-            "      })\n"
-            "      .catch(() => {\n"
-            "          tratarIdiomaInvalido();\n"
-            "      });\n"
-            "\n"
-            "  function tratarIdiomaInvalido() {\n"
-            "      localStorage.setItem('page_lang', defaultLang);"
-            "      document.cookie = `lang=${defaultLang}; path=/; max-age=31536000`;\n"
-            "      window.location.replace(`${defaultLang}/index.html`);\n"
-            "  }")
-
-        html_start = self._html_start.replace(
+    def _html_index(self) -> None:
+        index_start = self._html_top.replace(
             '<html lang="en-US"',
-            f'<html lang="{self._site_langs[0]}"').replace(
-            '// REDIRECT', redirect)
+            f'<html lang="{self._default_lang}"').replace(
+            '// REDIRECT',
+            "window.location.replace(`${savedLang}/index.html`);").replace(
+            '// CLEAR', '')
 
         with open(self._site_path/'index.html', 'w+') as index:
-            index.write(html_start)
+            index.write(index_start)
             index.write(self._html_end)
 
-        html_start = self._html_start
-        for lang in self._site_langs:
-            html_start = html_start.replace(
-                lang + '/index.html',  f'../{lang}/index.html')
-
-        for lang in self._site_langs:
+        for lang in self._langs:
             file_path = self._site_path/lang/'index.html'
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
+            html_start = self._html_top.replace(
+                '<html lang="en-US"', f'<html lang="{lang}"')
             with open(file_path, 'w+') as index:
                 index.write(html_start)
                 index.write(self._html_end)
 
-    def _set_html_base(self) -> str:
+    def _html_base(self) -> str:
         with open(self._data_path/'index.html', 'r') as file_:
             html = file_.read()
-        self._html_start, self._html_end = html.split('<!-- / -->')
+        self._html_top, self._html_end = html.split('<!-- / -->')
 
     def _hash(self, path: str):
         h = hashlib.new('md5')  # sha256
@@ -134,12 +113,26 @@ class Settings(object):
                 h.update(data)
         return h.hexdigest()
 
-    def _set_locales(self) -> None:
-        self._locales = [
+    def _langs_code(self) -> list:
+        langs = []
+        for lang_dir in os.listdir(self._docs_path):
+            if os.path.isdir(self._docs_path/lang_dir):
+                if os.listdir(self._docs_path/lang_dir):
+                    langs.append(lang_dir)
+
+        if not langs:
+            langs.append(self._default_lang)
+            file_path = self._docs_path/self._default_lang/'settings.conf'
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        return langs
+
+    def _locales_code(self) -> list:
+        locales_code = [
             x[1].split('.')[0] for x in locale.locale_alias.items()]
 
         locales = []
-        for local in self._locales:
+        for local in locales_code:
             if local not in locales: locales.append(local)
         
         if locales: locales.sort()
@@ -150,6 +143,8 @@ class Settings(object):
                 "site's indexing.\n\n")
             for local in locales:
                 local_file.write(local.replace('_', '-') + '\n')
+
+        return locales_code
 
 
 if __name__ == '__main__':
