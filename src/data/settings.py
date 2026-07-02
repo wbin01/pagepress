@@ -42,6 +42,11 @@ class Settings(object):
                 if os.listdir(self._docs_path/lang_dir):
                     self._site_langs.append(lang_dir)
 
+        if not self._site_langs:
+            self._site_langs.append(self._default_lang)
+            file_path = self._docs_path/self._default_lang/'settings.conf'
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
         space = '         '
         img_err = ("this.onerror=null; this.src='https://hatscripts.github.io/"
             "circle-flags/flags/xx.svg';")
