@@ -42,18 +42,24 @@ class Settings(object):
                 if os.listdir(self._docs_path/lang_dir):
                     self._site_langs.append(lang_dir)
         space = '         '
+        img_err = ("this.onerror=null; this.src='https://hatscripts.github.io/"
+            "circle-flags/flags/xx.svg';")
+        img_icon = ('<i class="bi bi-translate text-muted m-1 d-none" '
+            'style="font-size: 16px;"></i>')
         tag_li = (
             space + '<li>\n' +
             space + ' <a class="dropdown-item" onclick="changeLang(#LANG)" '
             'href="#lang/index.html">\n' +
             space + '  <img class="m-1" src="https://hatscripts.github.io/c'
-            'ircle-flags/flags/#icon.svg" width="20" /> #lang\n' +
+            f'ircle-flags/flags/#icon.svg" onerror="{img_err}" width="20" />'
+            f'{img_icon} #lang\n' +
             space + ' </a>\n' +
             space + '</li>\n')
 
         li_langs = '\n'
         for lang in self._site_langs:
-            icon, script = lang.lower().split('-')[1], f"'{lang}'"
+            icon = lang.lower().split('-')[1] if '-' in lang else lang.lower()
+            script = f"'{lang}'"
             li_langs += tag_li.replace(
                 '#LANG', script).replace('#lang', lang).replace('#icon', icon)
 
