@@ -22,20 +22,37 @@ class Settings(object):
         self._lang = self._default_lang  # locale.normalize(locale)
         self._locales = self._locales_code()
 
-        self._html_top = None
-        self._html_end = None
-        self._html_base()
-
+        self._html_top, self._html_end = self._html_base()
         self._langs = self._langs_code()
-        self._html_nav_langs()
-        
-        self._html_index()
-        self._html_nav_categs()
+        self._posts = self._all_posts()
+
+        self._nav_langs()
+        self._index()
+        self._nav_pages()
+        self._pages()
 
         self._clear()
-
         # self._parser = DocxParser(self._docs_path)
         # self._render = HTMLRender(self._parser)
+
+    def _all_posts(self) -> dict:
+        posts = {}
+
+        for lang in self._langs:
+            files =[f for f in (self._docs_path/lang).iterdir() if f.is_file()]
+            files_ord = sorted(
+                files, key=lambda x: x.stat().st_mtime, reverse=True)
+
+            posts[lang] = {'categ': 'index', 'posts': []}
+            for f in files_ord:
+                posts[lang]['posts'].append(f.name)
+
+        # for k, v in posts.items():
+        #     print(k, '->', v['categ'])
+        #     for x in v['posts']:
+        #         print('   ', x)
+
+        return posts
 
     def _clear(self) -> None:
         for node in os.listdir(self._site_path):
@@ -49,26 +66,24 @@ class Settings(object):
                 with open(self._site_path/node/'index.html', 'w') as file_:
                     file_.write(html_clear)
 
-    def _html_nav_langs(self) -> None:
-        space = '         '
-        img_err = ("this.onerror=null; this.src='https://hatscripts.github.io/"
-            "circle-flags/flags/xx.svg';")
-        tag_li = (
-            space + '<li>\n' +
-            space + ' <a class="dropdown-item" onclick="changeLang(#LANG)" '
-            'href="../#lang/index.html">\n' +
-            space + '  <img class="m-1" src="https://hatscripts.github.io/c'
-            f'ircle-flags/flags/#icon.svg" onerror="{img_err}" width="20" />'
-            ' #lang\n' +
-            space + ' </a>\n' +
-            space + '</li>\n')
+    def _nav_langs(self) -> None:
+        tag_li = """
+            <li>
+             <a class="dropdown-item" onclick="changeLang('#lang')" href="{}">
+              <img {} src="{}" onerror="{}; this.src='{}';" width="20" />
+              #lang
+             </a>
+            </li>
+            """.replace(' '*12, ' '*9).format(
+                '../#lang/index.html', 'class="m-1"',
+                'https://hatscripts.github.io/circle-flags/flags/#icon.svg',
+                'this.onerror=null',
+                'https://hatscripts.github.io/circle-flags/flags/xx.svg')
 
-        li_langs = '\n'
+        langs = ''
         for lang in self._langs:
             icon = lang.lower().split('-')[1] if '-' in lang else lang.lower()
-            script = f"'{lang}'"
-            li_langs += tag_li.replace(
-                '#LANG', script).replace('#lang', lang).replace('#icon', icon)
+            langs += tag_li.replace('#lang', lang).replace('#icon', icon)
 
         if len(self._langs) == 1:
             self._html_top = self._html_top.replace(
@@ -76,9 +91,9 @@ class Settings(object):
                 'href="#" role="button" data-bs-toggle="dropdown" '
                 'aria-expanded="false"> en-US </a>', '<span></span>')
 
-        self._html_top = self._html_top.replace('<!-- LANGS -->', li_langs)
+        self._html_top = self._html_top.replace('<!-- LANGS -->', langs)
 
-    def _html_nav_categs(self) -> None:
+    def _nav_pages(self) -> None:
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 index = file_.read()
@@ -86,25 +101,19 @@ class Settings(object):
             li_itens = ''
             for node in os.listdir(self._docs_path/lang):
                 if os.path.isdir(self._docs_path/lang/node):
-                    li_itens += ('\n'
-                        '     <li class="nav-item">\n'
-                        '      <a class="nav-link active" aria-current="page" '
-                        f'href="#">{node}</a>\n'
-                        '     </li>\n')
+                    li_itens += """
+                        <li class="nav-item">
+                         <a class="nav-link {} href="{}/index.html">{}</a>
+                        </li>
+                        """.replace(' '*24, ' '*5).format(
+                            'active" aria-current="page"',
+                            node, node)
 
             new_index = index.replace('<!-- NAV ITEM -->', li_itens)
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(new_index)
-
-    def _html_index_posts(self) -> None:
-        categs = {}
-        for lang in self._langs:
-            categs[lang] = []
-
-            for node in os.listdir(self._docs_path/lang):
-                print(node)
     
-    def _html_index(self) -> None:
+    def _index(self) -> None:
         index_start = self._html_top.replace(
             '<html lang="en-US"',
             f'<html lang="{self._default_lang}"').replace(
@@ -128,10 +137,41 @@ class Settings(object):
                 index.write(html_start)
                 index.write(self._html_end)
 
-    def _html_base(self) -> str:
+    def _pages(self) -> None:
+        for lang in self._langs:
+            with open(self._site_path/lang/'index.html', 'r') as file_:
+                html = file_.read()
+
+            # Brand link
+            html = html.replace(
+                f'href="../{lang}/index.html"',
+                f'href="../../{lang}/index.html"')
+
+            # Langs link
+            for l in self._langs:
+                html = html.replace(
+                    f"""changeLang('{l}')" href="../{l}/index.html">""",
+                    f"""changeLang('{l}')" href="../../{l}/index.html">""")
+
+            # Pages link
+            for i in os.listdir(self._docs_path/lang):
+                if os.path.isdir(self._docs_path/lang/i):
+                    html = html.replace(
+                        f'href="{i}/index.html"',
+                        f'href="../{i}/index.html"')
+
+            for inode in os.listdir(self._docs_path/lang):
+                if os.path.isdir(self._docs_path/lang/inode):
+                    path = self._site_path/lang/inode/'index.html'
+                    path.parent.mkdir(parents=True, exist_ok=True)
+
+                    with open(path, 'w') as file_:
+                        file_.write(html)
+
+    def _html_base(self) -> list:
         with open(self._data_path/'index.html', 'r') as file_:
             html = file_.read()
-        self._html_top, self._html_end = html.split('<!-- / -->')
+        return html.split('<!-- / -->')
 
     def _hash(self, path: str):
         h = hashlib.new('md5')  # sha256
