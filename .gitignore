@@ -1,16 +1,5 @@
-docs/*.docx
-docs/*.conf
-site/*.html
-docs/*.txt
-docs/*.txt
-site/*.txt
-docs/en-US/*.txt
-docs/pt-BR/*.txt
-docs/es-ES/*.txt
-site/en-US/*.html
-site/pt-BR/*.html
-site/es-ES/*.html
-
+docs/
+site/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
