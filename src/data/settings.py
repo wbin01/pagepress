@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import re
 import os
 import hashlib
 import locale
@@ -27,9 +28,9 @@ class Settings(object):
         self._posts = self._all_posts()
 
         self._nav_langs()
-        self._index()
-        self._nav_pages()
-        self._pages()
+        self._nav_langs_index()
+        self._nav_categs()
+        self._nav_categs_index()
 
         self._clear()
         # self._parser = DocxParser(self._docs_path)
@@ -93,7 +94,7 @@ class Settings(object):
 
         self._html_top = self._html_top.replace('<!-- LANGS -->', langs)
 
-    def _nav_pages(self) -> None:
+    def _nav_categs(self) -> None:
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 index = file_.read()
@@ -103,17 +104,16 @@ class Settings(object):
                 if os.path.isdir(self._docs_path/lang/node):
                     li_itens += """
                         <li class="nav-item">
-                         <a class="nav-link {} href="{}/index.html">{}</a>
+                         <a {} class="nav-link" href="{}/index.html">{}</a>
                         </li>
                         """.replace(' '*24, ' '*5).format(
-                            'active" aria-current="page"',
-                            node, node)
+                            'aria-current="page"', node, node)
 
             new_index = index.replace('<!-- NAV ITEM -->', li_itens)
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(new_index)
     
-    def _index(self) -> None:
+    def _nav_langs_index(self) -> None:
         index_start = self._html_top.replace(
             '<html lang="en-US"',
             f'<html lang="{self._default_lang}"').replace(
@@ -134,10 +134,10 @@ class Settings(object):
                 '#BRAND', f'../{lang}/index.html')
 
             with open(file_path, 'w+') as index:
-                index.write(html_start)
+                index.write(html_start + '\n<!-- CONTENT -->'*2)
                 index.write(self._html_end)
 
-    def _pages(self) -> None:
+    def _nav_categs_index(self) -> None:
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 html = file_.read()
@@ -165,8 +165,14 @@ class Settings(object):
                     path = self._site_path/lang/inode/'index.html'
                     path.parent.mkdir(parents=True, exist_ok=True)
 
+                    n_html = html
+                    r = re.findall(r'-link\" href=\"[^\"]+\">' + inode, n_html)
+                    if r:
+                        n = r[0].replace('-link', '-link active')
+                        n_html = n_html.replace(r[0], n)
+
                     with open(path, 'w') as file_:
-                        file_.write(html)
+                        file_.write(n_html)
 
     def _html_base(self) -> list:
         with open(self._data_path/'index.html', 'r') as file_:
