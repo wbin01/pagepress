@@ -31,9 +31,52 @@ class Settings(object):
         self._nav_categs()
         self._nav_categs_index()
 
+        self._index_content()
+
         self._clear()
         # self._parser = DocxParser(self._docs_path)
         # self._render = HTMLRender(self._parser)
+
+    def _index_content(self) -> None:
+        post_tag = """
+            <div class="card m-4">
+             <a href="">
+              <div class="card-body">
+               <h5 class="card-title">#title</h5>
+               <p class="card-text">#content</p>
+              </div>
+             </a>
+            </div>
+            """.replace(' '*10, '')
+        content = ''
+        for lang in self._langs:
+            for inode in os.listdir(self._docs_path/lang):
+                if os.path.isfile(self._docs_path/lang/inode):
+                    content += post_tag.replace(
+                        '#title', inode).replace('#content', inode)
+                else:
+                    self._index_content_for_categs(lang, inode, post_tag)
+                    
+            with open(self._site_path/lang/'index.html', 'r') as f:
+                top, end = f.read().split('<!-- CONTENT -->')
+
+            with open(self._site_path/lang/'index.html', 'w+') as f:
+                f.write(f'{top}{content}{end}')
+
+    def _index_content_for_categs(
+            self, lang: str, inode: str, post_tag: str) -> None:
+        sub_content = ''
+        for item in os.listdir(self._docs_path/lang/inode):
+            if os.path.isdir(self._docs_path/lang/inode/item):
+                continue
+            sub_content += post_tag.replace(
+                '#title', item).replace('#content', item)
+
+        with open(self._site_path/lang/inode/'index.html', 'r') as f:
+            top, end = f.read().split('<!-- CONTENT -->')
+
+        with open(self._site_path/lang/inode/'index.html', 'w') as f:
+            f.write(f'{top}{sub_content}{end}')
 
     def _clear(self) -> None:
         for node in os.listdir(self._site_path):
@@ -182,7 +225,7 @@ class Settings(object):
                 '#BRAND', f'../{lang}/index.html')
 
             with open(file_path, 'w+') as index:
-                index.write(html_start + '\n<!-- CONTENT -->'*2)
+                index.write(html_start + '\n<!-- CONTENT -->')
                 index.write(self._html_end)
 
     def _update_nav_links(self, lang: str, html: str, level: str) -> str:
