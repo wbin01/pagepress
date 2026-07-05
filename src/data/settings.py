@@ -48,11 +48,10 @@ class Settings(object):
             for f in files_ord:
                 posts[lang]['posts'].append(f.name)
 
-        # for k, v in posts.items():
-        #     print(k, '->', v['categ'])
-        #     for x in v['posts']:
-        #         print('   ', x)
-
+        for k, v in posts.items():
+            print(k, '->', v['categ'])
+            for x in v['posts']:
+                print('   ', x)
         return posts
 
     def _clear(self) -> None:
@@ -119,7 +118,7 @@ class Settings(object):
             f'<html lang="{self._default_lang}"').replace(
             '// REDIRECT',
             "window.location.replace(`${savedLang}/index.html`);").replace(
-            '// CLEAR', '',).replace('#BRAND', 'index.html')
+            '#BRAND', 'index.html')
 
         with open(self._site_path/'index.html', 'w+') as index:
             index.write(index_start)
@@ -142,24 +141,7 @@ class Settings(object):
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 html = file_.read()
 
-            # Brand link
-            html = html.replace(
-                f'href="../{lang}/index.html"',
-                f'href="../../{lang}/index.html"')
-
-            # Langs link
-            for l in self._langs:
-                html = html.replace(
-                    f"""changeLang('{l}')" href="../{l}/index.html">""",
-                    f"""changeLang('{l}')" href="../../{l}/index.html">""")
-
-            # Pages link
-            for i in os.listdir(self._docs_path/lang):
-                if os.path.isdir(self._docs_path/lang/i):
-                    html = html.replace(
-                        f'href="{i}/index.html"',
-                        f'href="../{i}/index.html"')
-
+            html = self._update_links(lang, html, 'CATEG')
             for inode in os.listdir(self._docs_path/lang):
                 if os.path.isdir(self._docs_path/lang/inode):
                     path = self._site_path/lang/inode/'index.html'
@@ -221,6 +203,36 @@ class Settings(object):
                 local_file.write(local.replace('_', '-') + '\n')
 
         return locales_code
+
+    def _update_links(self, lang: str, html: str, level: str) -> str:
+        if level == 'CATEG':
+            brand_prev, brand_next = '../', '../../'
+            langs_prev, langs_next = '../', '../../'
+            pages_prev, pages_next = ''   , '../'
+
+        elif level == 'SUB-CATEG':
+            brand_prev, brand_next = '../../', '../../../'
+            langs_prev, langs_next = '../../', '../../../'
+            pages_prev, pages_next = '../'   , '../../'
+
+        # Brand link
+        html = html.replace(
+            f'href="{brand_prev}{lang}/index.html"',
+            f'href="{brand_next}{lang}/index.html"')
+
+        # Langs link
+        for l in self._langs:
+            html = html.replace(
+                f"""changeLang('{l}')" href="{langs_prev}{l}/index.html">""",
+                f"""changeLang('{l}')" href="{langs_next}{l}/index.html">""")
+
+        # Pages link
+        for i in os.listdir(self._docs_path/lang):
+            if os.path.isdir(self._docs_path/lang/i):
+                html = html.replace(
+                    f'href="{pages_prev}{i}/index.html"',
+                    f'href="{pages_next}{i}/index.html"')
+        return html
 
 
 if __name__ == '__main__':
