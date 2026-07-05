@@ -25,7 +25,6 @@ class Settings(object):
 
         self._html_top, self._html_end = self._html_base()
         self._langs = self._langs_code()
-        self._posts = self._all_posts()
 
         self._nav_langs()
         self._nav_langs_index()
@@ -35,24 +34,6 @@ class Settings(object):
         self._clear()
         # self._parser = DocxParser(self._docs_path)
         # self._render = HTMLRender(self._parser)
-
-    def _all_posts(self) -> dict:
-        posts = {}
-
-        for lang in self._langs:
-            files =[f for f in (self._docs_path/lang).iterdir() if f.is_file()]
-            files_ord = sorted(
-                files, key=lambda x: x.stat().st_mtime, reverse=True)
-
-            posts[lang] = {'categ': 'index', 'posts': []}
-            for f in files_ord:
-                posts[lang]['posts'].append(f.name)
-
-        for k, v in posts.items():
-            print(k, '->', v['categ'])
-            for x in v['posts']:
-                print('   ', x)
-        return posts
 
     def _clear(self) -> None:
         for node in os.listdir(self._site_path):
@@ -66,101 +47,6 @@ class Settings(object):
                 with open(self._site_path/node/'index.html', 'w') as file_:
                     file_.write(html_clear)
 
-    def _nav_langs(self) -> None:
-        tag_li = """
-            <li>
-             <a class="dropdown-item" onclick="changeLang('#lang')" href="{}">
-              <img {} src="{}" onerror="{}; this.src='{}';" width="20" />
-              #lang
-             </a>
-            </li>
-            """.replace(' '*12, ' '*9).format(
-                '../#lang/index.html', 'class="m-1"',
-                'https://hatscripts.github.io/circle-flags/flags/#icon.svg',
-                'this.onerror=null',
-                'https://hatscripts.github.io/circle-flags/flags/xx.svg')
-
-        langs = ''
-        for lang in self._langs:
-            icon = lang.lower().split('-')[1] if '-' in lang else lang.lower()
-            langs += tag_li.replace('#lang', lang).replace('#icon', icon)
-
-        if len(self._langs) == 1:
-            self._html_top = self._html_top.replace(
-                '<a class="nav-link dropdown-toggle" id="currentLang" '
-                'href="#" role="button" data-bs-toggle="dropdown" '
-                'aria-expanded="false"> en-US </a>', '<span></span>')
-
-        self._html_top = self._html_top.replace('<!-- LANGS -->', langs)
-
-    def _nav_categs(self) -> None:
-        for lang in self._langs:
-            with open(self._site_path/lang/'index.html', 'r') as file_:
-                index = file_.read()
-
-            li_itens = ''
-            for node in os.listdir(self._docs_path/lang):
-                if os.path.isdir(self._docs_path/lang/node):
-                    li_itens += """
-                        <li class="nav-item">
-                         <a {} class="nav-link" href="{}/index.html">{}</a>
-                        </li>
-                        """.replace(' '*24, ' '*5).format(
-                            'aria-current="page"', node, node)
-
-            new_index = index.replace('<!-- NAV ITEM -->', li_itens)
-            with open(self._site_path/lang/'index.html', 'w+') as f:
-                f.write(new_index)
-    
-    def _nav_langs_index(self) -> None:
-        index_start = self._html_top.replace(
-            '<html lang="en-US"',
-            f'<html lang="{self._default_lang}"').replace(
-            '// REDIRECT',
-            "window.location.replace(`${savedLang}/index.html`);").replace(
-            '#BRAND', 'index.html')
-
-        with open(self._site_path/'index.html', 'w+') as index:
-            index.write(index_start)
-            index.write(self._html_end)
-
-        for lang in self._langs:
-            file_path = self._site_path/lang/'index.html'
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-
-            html_start = self._html_top.replace(
-                '<html lang="en-US"', f'<html lang="{lang}"').replace(
-                '#BRAND', f'../{lang}/index.html')
-
-            with open(file_path, 'w+') as index:
-                index.write(html_start + '\n<!-- CONTENT -->'*2)
-                index.write(self._html_end)
-
-    def _nav_categs_index(self) -> None:
-        for lang in self._langs:
-            with open(self._site_path/lang/'index.html', 'r') as file_:
-                html = file_.read()
-
-            html = self._update_links(lang, html, 'CATEG')
-            for inode in os.listdir(self._docs_path/lang):
-                if os.path.isdir(self._docs_path/lang/inode):
-                    path = self._site_path/lang/inode/'index.html'
-                    path.parent.mkdir(parents=True, exist_ok=True)
-
-                    n_html = html
-                    r = re.findall(r'-link\" href=\"[^\"]+\">' + inode, n_html)
-                    if r:
-                        n = r[0].replace('-link', '-link active')
-                        n_html = n_html.replace(r[0], n)
-
-                    with open(path, 'w') as file_:
-                        file_.write(n_html)
-
-    def _html_base(self) -> list:
-        with open(self._data_path/'index.html', 'r') as file_:
-            html = file_.read()
-        return html.split('<!-- / -->')
-
     def _hash(self, path: str):
         h = hashlib.new('md5')  # sha256
         with open(path, 'rb') as file_:
@@ -170,6 +56,11 @@ class Settings(object):
                     break
                 h.update(data)
         return h.hexdigest()
+
+    def _html_base(self) -> list:
+        with open(self._data_path/'index.html', 'r') as file_:
+            html = file_.read()
+        return html.split('<!-- / -->')
 
     def _langs_code(self) -> list:
         langs = []
@@ -204,7 +95,97 @@ class Settings(object):
 
         return locales_code
 
-    def _update_links(self, lang: str, html: str, level: str) -> str:
+    def _nav_categs(self) -> None:
+        for lang in self._langs:
+            with open(self._site_path/lang/'index.html', 'r') as file_:
+                index = file_.read()
+
+            li_itens = ''
+            for node in os.listdir(self._docs_path/lang):
+                if os.path.isdir(self._docs_path/lang/node):
+                    li_itens += """
+                        <li class="nav-item">
+                         <a {} class="nav-link" href="{}/index.html">{}</a>
+                        </li>
+                        """.replace(' '*24, ' '*5).format(
+                            'aria-current="page"', node, node)
+
+            new_index = index.replace('<!-- NAV ITEM -->', li_itens)
+            with open(self._site_path/lang/'index.html', 'w+') as f:
+                f.write(new_index)
+
+    def _nav_categs_index(self) -> None:
+        for lang in self._langs:
+            with open(self._site_path/lang/'index.html', 'r') as file_:
+                html = file_.read()
+
+            html = self._update_nav_links(lang, html, 'CATEG')
+            for inode in os.listdir(self._docs_path/lang):
+                if os.path.isdir(self._docs_path/lang/inode):
+                    path = self._site_path/lang/inode/'index.html'
+                    path.parent.mkdir(parents=True, exist_ok=True)
+
+                    n_html = html
+                    r = re.findall(r'-link\" href=\"[^\"]+\">' + inode, n_html)
+                    if r:
+                        n = r[0].replace('-link', '-link active')
+                        n_html = n_html.replace(r[0], n)
+
+                    with open(path, 'w') as file_:
+                        file_.write(n_html)
+
+    def _nav_langs(self) -> None:
+        tag_li = """
+            <li>
+             <a class="dropdown-item" onclick="changeLang('#lang')" href="{}">
+              <img {} src="{}" onerror="{}; this.src='{}';" width="20" />
+              #lang
+             </a>
+            </li>
+            """.replace(' '*12, ' '*9).format(
+                '../#lang/index.html', 'class="m-1"',
+                'https://hatscripts.github.io/circle-flags/flags/#icon.svg',
+                'this.onerror=null',
+                'https://hatscripts.github.io/circle-flags/flags/xx.svg')
+
+        langs = ''
+        for lang in self._langs:
+            icon = lang.lower().split('-')[1] if '-' in lang else lang.lower()
+            langs += tag_li.replace('#lang', lang).replace('#icon', icon)
+
+        if len(self._langs) == 1:
+            self._html_top = self._html_top.replace(
+                '<a class="nav-link dropdown-toggle" id="currentLang" '
+                'href="#" role="button" data-bs-toggle="dropdown" '
+                'aria-expanded="false"> en-US </a>', '<span></span>')
+
+        self._html_top = self._html_top.replace('<!-- LANGS -->', langs)
+    
+    def _nav_langs_index(self) -> None:
+        index_start = self._html_top.replace(
+            '<html lang="en-US"',
+            f'<html lang="{self._default_lang}"').replace(
+            '// REDIRECT',
+            "window.location.replace(`${savedLang}/index.html`);").replace(
+            '#BRAND', 'index.html')
+
+        with open(self._site_path/'index.html', 'w+') as index:
+            index.write(index_start)
+            index.write(self._html_end)
+
+        for lang in self._langs:
+            file_path = self._site_path/lang/'index.html'
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            html_start = self._html_top.replace(
+                '<html lang="en-US"', f'<html lang="{lang}"').replace(
+                '#BRAND', f'../{lang}/index.html')
+
+            with open(file_path, 'w+') as index:
+                index.write(html_start + '\n<!-- CONTENT -->'*2)
+                index.write(self._html_end)
+
+    def _update_nav_links(self, lang: str, html: str, level: str) -> str:
         if level == 'CATEG':
             brand_prev, brand_next = '../', '../../'
             langs_prev, langs_next = '../', '../../'
