@@ -4,13 +4,13 @@ from pathlib import Path
 from scour import scour
 
 
-PATH = Path(__file__).resolve().parent.parent.parent
+PATH = Path(__file__).resolve().parent.parent
 
 
 class SvgIconToHTML(object):
     def __init__(self, name: str) -> None:
         self._name = name
-        self._path = PATH/'media'/'icons'/'default'/f'{name}.svg' # .as_posix()
+        self._path = PATH/'data'/'icons'/'default'/f'{name}.svg' # .as_posix()
         self._html = None
 
     def __repr__(self) -> str:

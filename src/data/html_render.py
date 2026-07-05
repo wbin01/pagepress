@@ -17,18 +17,17 @@ class HTMLRender(object):
         self._parser = docx_parser
 
         # Contents
-        self._start = ''
-        self._header = ''
+        self._top = ''
         self._cover = ''
+        self._cover_src = ''
         self._title = ''
         self._body = ''
         self._modals = ''
-        self._footer = ''
         self._end = ''
         self._html = ''
 
         self._icon_close = icon = SvgIconToHTML('close').html
-        self._icon_book = icon = SvgIconToHTML('biblius').html
+        self._icon_book = icon = SvgIconToHTML('book').html
 
         self._set_html()
 
@@ -37,15 +36,42 @@ class HTMLRender(object):
         return self._cover
 
     @property
-    def render(self) -> str:
+    def cover_src(self) -> str:
+        return self._cover_src
+
+    @property
+    def html(self) -> str:
+        self._html += self._top
+        self._html += self._body + '\n'
+        self._html += self._modals
+        self._html += self._end
         return self._html
+
+    @property
+    def html_body(self) -> str:
+        return self._body
+
+    @property
+    def html_end(self) -> str: 
+        return self._end
+
+    @property
+    def html_modals(self) -> str:
+        return self._modals
+
+    @property
+    def html_top(self) -> str:
+        return self._top
 
     @property
     def title(self) -> str:
         return self._title
 
-    def save(self, path: str = '') -> None:
-        path = path if path else self._parser.path.replace('.docx', '.html')
+    def save(self, path: str = '', html: str = None) -> None:
+        path = path if path else self._parser.path
+        path = path.as_posix().replace('.docx', '.html')
+
+        html = html if html else self.html
         with open(path, 'w') as html:
             html.write(self._html)
     
@@ -61,7 +87,7 @@ class HTMLRender(object):
             self._modals += self._set_html_body(parse, True)
 
         # Start
-        self._start = (
+        self._top = (
             '<!DOCTYPE html>\n'
             '<html>\n'
             ' <head>\n'
@@ -86,13 +112,13 @@ class HTMLRender(object):
         # End
         self._end = f'\n </body>\n</html>'
 
-        self._html += self._start
-        self._html += self._body + '\n'
-        self._html += self._modals
-        self._html += self._end
+        # self._html += self._top
+        # self._html += self._body + '\n'
+        # self._html += self._modals
+        # self._html += self._end
 
     def _set_html_body(self, parse: dict, modal: bool = False) -> str:
-            parse_tag = tag = pr = text = id_ = style = ''
+            parse_tag = tag = pr = text = id_ = style = src = ''
             for key, value in parse.items():
                 if key == 'tag':
                     parse_tag = value
@@ -100,6 +126,7 @@ class HTMLRender(object):
 
                 elif key == 'pr' and value:
                     for pr_key, pr_value in value.items():
+                        if tag == 'img' and pr_key == 'src': src = pr_value
                         pr += f' {pr_key}="{pr_value}"'
 
                 elif key == 'children':
@@ -162,6 +189,7 @@ class HTMLRender(object):
                 
                 if not self._cover:
                     self._cover = tag
+                    self._cover_src = src
                     tag = f'  <!-- Cover -->\n{tag}'
             else:
                 class_ = ''

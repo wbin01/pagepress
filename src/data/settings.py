@@ -39,11 +39,18 @@ class Settings(object):
 
     def _index_content(self) -> None:
         post_tag = """
-            <div class="card m-4">
-             <a href="">
-              <div class="card-body">
-               <h5 class="card-title">#title</h5>
-               <p class="card-text">#content</p>
+            <div class="card m-4" style="max-width: 80%;">
+             <a href="#link">
+              <div class="row g-0">
+               <div class="col-md-4">
+                <img src="#img_src" height="100" class="img-fluid rounded-start" alt="" >
+               </div>
+               <div class="col-md-8">
+                <div class="card-body">
+                 <h5 class="card-title">#title</h5>
+                 <p class="card-text">#content</p>
+                </div>
+               </div>
               </div>
              </a>
             </div>
@@ -52,8 +59,18 @@ class Settings(object):
         for lang in self._langs:
             for inode in os.listdir(self._docs_path/lang):
                 if os.path.isfile(self._docs_path/lang/inode):
+                    if not inode.endswith('.docx'): continue
+
+                    name = inode.replace('.docx', '.html')
+
+                    html = HTMLRender(DocxParser(self._docs_path/lang/inode))
+                    html.save(self._site_path/lang/name)
+
                     content += post_tag.replace(
-                        '#title', inode).replace('#content', inode)
+                        '#title', html.title).replace(
+                        '#content', html.title).replace(
+                        '#link', name).replace(
+                        '#img_src', html.cover_src)
                 else:
                     self._index_content_for_categs(lang, inode, post_tag)
                     
