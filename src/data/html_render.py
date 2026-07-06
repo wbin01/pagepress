@@ -21,6 +21,7 @@ class HTMLRender(object):
         self._cover = ''
         self._cover_src = ''
         self._title = ''
+        self._title_text = ''
         self._body = ''
         self._modals = ''
         self._end = ''
@@ -28,52 +29,88 @@ class HTMLRender(object):
 
         self._icon_close = icon = SvgIconToHTML('close').html
         self._icon_book = icon = SvgIconToHTML('book').html
-
         self._set_html()
 
     @property
     def cover(self) -> str:
         return self._cover
 
+    @cover.setter
+    def cover(self, cover: str) -> None:
+        if cover:
+            self._body = self._body.replace(self._cover, cover)
+        self._cover = cover
+
     @property
     def cover_src(self) -> str:
         return self._cover_src
 
+    @cover_src.setter
+    def cover_src(self, cover_src: str) -> None:
+        self._cover_src = cover_src
+
     @property
     def html(self) -> str:
+        self._html = ''
         self._html += self._top
         self._html += self._body + '\n'
         self._html += self._modals
         self._html += self._end
         return self._html
 
+    @html.setter
+    def html(self, html: str) -> None:
+        self._html = html
+
     @property
-    def html_body(self) -> str:
+    def body(self) -> str:
         return self._body
 
+    @body.setter
+    def body(self, body: str) -> None:
+        self._body = body
+
     @property
-    def html_end(self) -> str: 
+    def end(self) -> str: 
         return self._end
 
-    @html_end.setter
-    def html_end(self, html: str) -> None:
-        self._end = html
+    @end.setter
+    def end(self, end: str) -> None:
+        self._end = end
 
     @property
-    def html_modals(self) -> str:
+    def modals(self) -> str:
         return self._modals
 
+    @modals.setter
+    def modals(self, modals: str) -> None:
+        self._modals = modals
+
     @property
-    def html_top(self) -> str:
+    def start(self) -> str:
         return self._top
 
-    @html_top.setter
-    def html_top(self, html: str) -> None:
-        self._top = html
+    @start.setter
+    def start(self, start: str) -> None:
+        self._top = start
 
     @property
     def title(self) -> str:
         return self._title
+
+    @title.setter
+    def title(self, title: str) -> None:
+        if title:
+            self._body = self._body.replace(self._title, title)
+        self._title = title
+
+    @property
+    def title_text(self) -> str:
+        return self._title_text
+
+    @title_text.setter
+    def title_text(self, text: str) -> None:
+        self._title_text = text
 
     def save(self, path: str = '', html: str = None) -> None:
         path = path if path else self._parser.path
@@ -99,7 +136,7 @@ class HTMLRender(object):
             '<!DOCTYPE html>\n'
             '<html>\n'
             ' <head>\n'
-            f'  <title>{self._title}</title>\n'
+            f'  <title>{self._title_text}</title>\n'
             '  <meta charset="utf-8">\n'
             '  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/c'
             'ss/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjp'
@@ -119,11 +156,6 @@ class HTMLRender(object):
 
         # End
         self._end = f'\n </body>\n</html>'
-
-        # self._html += self._top
-        # self._html += self._body + '\n'
-        # self._html += self._modals
-        # self._html += self._end
 
     def _set_html_body(self, parse: dict, modal: bool = False) -> str:
             parse_tag = tag = pr = text = id_ = style = src = ''
@@ -149,7 +181,7 @@ class HTMLRender(object):
 
             # End format
             if tag == 'h1' and parse_tag == 'Title':
-                self._title = text
+                self._title_text = text
 
                 class_ = 'post-title'
                 if 'align' in style: class_ += f' text-' + style['align']
@@ -157,6 +189,7 @@ class HTMLRender(object):
 
                 tag = f'\n   <{tag}{class_}>{text}</{tag}>\n'
                 tag = f'\n  <!-- Title -->\n  <header>{tag}  </header>\n\n'
+                self._title = tag
 
             elif tag == 'div' and parse_tag == 'comment_modal':
                 tag = (

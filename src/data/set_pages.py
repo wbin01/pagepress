@@ -80,22 +80,42 @@ class SetPages(object):
         return html.split('<!-- / -->')
 
     def _index_content(self) -> None:
-        post_tag = """
+        card = """
             <a href="#link">
-             <div class="row text-bg-dark text-center m-4 p-0 position-relative">
+             <div class="row text-light m-4 p-0 position-relative shadow">
               <div class="col-md-6 m-0 p-0">
                <img src="#img_src" height="150" class="{}" alt="">
               </div>
-              <div class="col-md-6" style="background-color: #000000;"></div>
+              <div class="col-md-6 m-0 p-0 {}"></div>
               <div class="position-absolute bottom-0 m-0 p-0">
-               <div class="m-0 mx-2 p-2" style="{}">
-                <h3>#title</h3>
+               <div class="mx-2 text-center" style="{}">
+                <h3 class="m-0 p-1">#title</h3>
                </div>
               </div>
              </div>
             </a>
-        """.replace(' '*10, '').format(
-            'card-img object-fit-cover', 'background-color: #000000BB;')
+            """.replace(' '*10, '').format(
+            'card-img object-fit-cover',
+            'border border-start-0 border-secondary border-opacity-25',
+            'background-color: #000000DD;')
+
+        cover = """+
+            <div style="width:100%; height:300;">
+            <img height="300" class="card-img object-fit-cover" src="#img">
+            </div>
+            """.replace(' '*10, '').replace('+\n', '')
+        
+        title = """+
+            <!-- Title -->
+            <div class="position-relative text-light text-center">
+            <header class="position-absolute w-100 top-100 start-50 translate-middle">
+             <h1 class="post-title m-4 p-1" style="{}">#title</h1>
+            </header>
+            </div>
+            <div class="m-4 p-3"></div>
+            \n""".replace(' '*10, '').replace('+\n', '').format(
+                'background-color: #000000DD;')
+
         content = ''
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as f:
@@ -104,27 +124,30 @@ class SetPages(object):
             for inode in os.listdir(self._docs_path/lang):
                 if os.path.isfile(self._docs_path/lang/inode):
                     if not inode.endswith('.docx'): continue
-
                     name = inode.replace('.docx', '.html')
 
                     html = HTMLRender(DocxParser(self._docs_path/lang/inode))
-                    html.html_top = top
-                    html.html_end = end
+                    html.start = top
+                    html.cover = cover.replace('#img', html.cover_src)
+                    html.title = title.replace('#title', html.title_text)
+                    html.end = end
                     html.save(self._site_path/lang/name)
 
-                    content += post_tag.replace(
-                        '#title', html.title).replace(
-                        '#content', html.title).replace(
+                    content += card.replace(
+                        '#title', html.title_text).replace(
+                        '#content', html.title_text).replace(
                         '#link', name).replace(
                         '#img_src', html.cover_src)
                 else:
-                    self._index_content_for_categs(lang, inode, post_tag)
+                    self._index_content_for_categs(
+                        lang, inode, card, cover, title)
 
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(f'{top}{content}{end}')
 
     def _index_content_for_categs(
-            self, lang: str, inode: str, post_tag: str) -> None:
+            self, lang: str, inode: str, card: str, cover: str, title: str
+            ) -> None:
         sub_content = ''
         with open(self._site_path/lang/inode/'index.html', 'r') as f:
             top, end = f.read().split('<!-- CONTENT -->')
@@ -135,13 +158,15 @@ class SetPages(object):
 
             name = item.replace('.docx', '.html')
             html = HTMLRender(DocxParser(self._docs_path/lang/inode/item))
-            html.html_top = top
-            html.html_end = end
+            html.start = top
+            html.cover = cover.replace('#img', html.cover_src)
+            html.title = title.replace('#title', html.title_text)
+            html.end = end
             html.save(self._site_path/lang/inode/name)
 
-            sub_content += post_tag.replace(
-                '#title', html.title).replace(
-                '#content', html.title).replace(
+            sub_content += card.replace(
+                '#title', html.title_text).replace(
+                '#content', html.title_text).replace(
                 '#link', name).replace(
                 '#img_src', html.cover_src)
 
