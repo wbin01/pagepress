@@ -39,22 +39,16 @@ class Settings(object):
 
     def _index_content(self) -> None:
         post_tag = """
-            <div class="card m-4" style="max-width: 80%;">
+            <div class="card text-bg-dark m-4" style="max-width: 85%">
              <a href="#link">
-              <div class="row g-0">
-               <div class="col-md-4">
-                <img src="#img_src" height="100" class="img-fluid rounded-start" alt="" >
-               </div>
-               <div class="col-md-8">
-                <div class="card-body">
-                 <h5 class="card-title">#title</h5>
-                 <p class="card-text">#content</p>
-                </div>
-               </div>
+              <img src="#img_src" height="100" class="card-img" alt="" {}>
+              <div class="card-img-overlay">
+               <h5 class="card-title">#title</h5>
+               <p class="card-text"><small>#content</small></p>
               </div>
              </a>
             </div>
-            """.replace(' '*10, '')
+        """.replace(' '*10, '').format('style="object-fit: cover;"')
         content = ''
         for lang in self._langs:
             for inode in os.listdir(self._docs_path/lang):
@@ -84,10 +78,18 @@ class Settings(object):
             self, lang: str, inode: str, post_tag: str) -> None:
         sub_content = ''
         for item in os.listdir(self._docs_path/lang/inode):
-            if os.path.isdir(self._docs_path/lang/inode/item):
-                continue
+            if os.path.isdir(self._docs_path/lang/inode/item): continue
+            if not item.endswith('.docx'): continue
+
+            name = item.replace('.docx', '.html')
+            html = HTMLRender(DocxParser(self._docs_path/lang/inode/item))
+            html.save(self._site_path/lang/inode/name)
+
             sub_content += post_tag.replace(
-                '#title', item).replace('#content', item)
+                '#title', html.title).replace(
+                '#content', html.title).replace(
+                '#link', name).replace(
+                '#img_src', html.cover_src)
 
         with open(self._site_path/lang/inode/'index.html', 'r') as f:
             top, end = f.read().split('<!-- CONTENT -->')
