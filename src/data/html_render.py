@@ -55,6 +55,10 @@ class HTMLRender(object):
     def html_end(self) -> str: 
         return self._end
 
+    @html_end.setter
+    def html_end(self, html: str) -> None:
+        self._end = html
+
     @property
     def html_modals(self) -> str:
         return self._modals
@@ -62,6 +66,10 @@ class HTMLRender(object):
     @property
     def html_top(self) -> str:
         return self._top
+
+    @html_top.setter
+    def html_top(self, html: str) -> None:
+        self._top = html
 
     @property
     def title(self) -> str:

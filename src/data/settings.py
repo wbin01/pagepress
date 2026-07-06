@@ -51,6 +51,9 @@ class Settings(object):
         """.replace(' '*10, '').format('style="object-fit: cover;"')
         content = ''
         for lang in self._langs:
+            with open(self._site_path/lang/'index.html', 'r') as f:
+                top, end = f.read().split('<!-- CONTENT -->')
+
             for inode in os.listdir(self._docs_path/lang):
                 if os.path.isfile(self._docs_path/lang/inode):
                     if not inode.endswith('.docx'): continue
@@ -58,6 +61,8 @@ class Settings(object):
                     name = inode.replace('.docx', '.html')
 
                     html = HTMLRender(DocxParser(self._docs_path/lang/inode))
+                    html.html_top = top
+                    html.html_end = end
                     html.save(self._site_path/lang/name)
 
                     content += post_tag.replace(
@@ -68,8 +73,8 @@ class Settings(object):
                 else:
                     self._index_content_for_categs(lang, inode, post_tag)
                     
-            with open(self._site_path/lang/'index.html', 'r') as f:
-                top, end = f.read().split('<!-- CONTENT -->')
+            # with open(self._site_path/lang/'index.html', 'r') as f:
+            #     top, end = f.read().split('<!-- CONTENT -->')
 
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(f'{top}{content}{end}')
@@ -77,12 +82,17 @@ class Settings(object):
     def _index_content_for_categs(
             self, lang: str, inode: str, post_tag: str) -> None:
         sub_content = ''
+        with open(self._site_path/lang/inode/'index.html', 'r') as f:
+            top, end = f.read().split('<!-- CONTENT -->')
+
         for item in os.listdir(self._docs_path/lang/inode):
             if os.path.isdir(self._docs_path/lang/inode/item): continue
             if not item.endswith('.docx'): continue
 
             name = item.replace('.docx', '.html')
             html = HTMLRender(DocxParser(self._docs_path/lang/inode/item))
+            html.html_top = top
+            html.html_end = end
             html.save(self._site_path/lang/inode/name)
 
             sub_content += post_tag.replace(
@@ -90,9 +100,6 @@ class Settings(object):
                 '#content', html.title).replace(
                 '#link', name).replace(
                 '#img_src', html.cover_src)
-
-        with open(self._site_path/lang/inode/'index.html', 'r') as f:
-            top, end = f.read().split('<!-- CONTENT -->')
 
         with open(self._site_path/lang/inode/'index.html', 'w') as f:
             f.write(f'{top}{sub_content}{end}')
