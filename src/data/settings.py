@@ -41,7 +41,7 @@ class Settings(object):
         post_tag = """
             <div class="card text-bg-dark m-4" style="max-width: 85%">
              <a href="#link">
-              <img src="#img_src" height="100" class="card-img" alt="" {}>
+              <img src="#img_src" height="150" class="card-img" alt="" {}>
               <div class="card-img-overlay">
                <h5 class="card-title">#title</h5>
                <p class="card-text"><small>#content</small></p>
