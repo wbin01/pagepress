@@ -81,16 +81,21 @@ class SetPages(object):
 
     def _index_content(self) -> None:
         post_tag = """
-            <div class="card text-bg-dark m-4" style="max-width: 85%">
-             <a href="#link">
-              <img src="#img_src" height="150" class="card-img" alt="" {}>
-              <div class="card-img-overlay">
-               <h5 class="card-title">#title</h5>
-               <p class="card-text"><small>#content</small></p>
+            <a href="#link">
+             <div class="row text-bg-dark text-center m-4 p-0 position-relative">
+              <div class="col-md-6 m-0 p-0">
+               <img src="#img_src" height="150" class="{}" alt="">
               </div>
-             </a>
-            </div>
-        """.replace(' '*10, '').format('style="object-fit: cover;"')
+              <div class="col-md-6" style="background-color: #000000;"></div>
+              <div class="position-absolute bottom-0 m-0 p-0">
+               <div class="m-0 mx-2 p-2" style="{}">
+                <h3>#title</h3>
+               </div>
+              </div>
+             </div>
+            </a>
+        """.replace(' '*10, '').format(
+            'card-img object-fit-cover', 'background-color: #000000BB;')
         content = ''
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as f:
