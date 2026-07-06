@@ -13,7 +13,7 @@ from .html_render import HTMLRender
 PATH = Path(__file__).resolve().parent.parent
 
 
-class Settings(object):
+class SetPages(object):
     def __init__(self) -> None:
         self._docs_path = PATH/'docs'
         self._site_path = PATH/'site'
@@ -30,12 +30,54 @@ class Settings(object):
         self._nav_langs_index()
         self._nav_categs()
         self._nav_categs_index()
-
         self._index_content()
-
         self._clear()
-        # self._parser = DocxParser(self._docs_path)
-        # self._render = HTMLRender(self._parser)
+
+    def _clear(self) -> None:
+        for node in os.listdir(self._site_path):
+            if os.path.isdir(self._site_path/node) and node not in self._langs:
+                # shutil.rmtree(self._site_path/node)
+                with open(self._data_path/'clear.html', 'r') as file_:
+                    html_clear = file_.read()
+                html_clear = html_clear.replace(
+                    'const defaultLang = "en-US";',
+                    f'const defaultLang = "{self._langs[0]}";')
+                with open(self._site_path/node/'index.html', 'w') as file_:
+                    file_.write(html_clear)
+
+        for lang in self._langs:
+            # index
+            self._delete_missing_inodes(lang)
+            # Categs
+            for inode in os.listdir(self._site_path/lang):
+                if os.path.isdir(self._site_path/lang/inode):
+                    self._delete_missing_inodes(f'{lang}/{inode}')
+
+    def _delete_missing_inodes(self, inode_path):
+        docs = [x for x in os.listdir(self._docs_path/inode_path)]
+
+        for inode in os.listdir(self._site_path/inode_path):
+            if inode == 'index.html': continue
+            if inode.replace('.html', '.docx') not in docs:
+                if os.path.isfile(self._site_path/inode_path/inode):
+                    os.remove(self._site_path/inode_path/inode)
+                else:
+                    shutil.rmtree(self._site_path/inode_path/inode)
+
+    def _hash(self, path: str):
+        h = hashlib.new('md5')  # sha256
+        with open(path, 'rb') as file_:
+            while True:
+                data = file_.read(65536)
+                if not data:
+                    break
+                h.update(data)
+        return h.hexdigest()
+
+    def _html_base(self) -> list:
+        with open(self._data_path/'index.html', 'r') as file_:
+            html = file_.read()
+        return html.split('<!-- / -->')
 
     def _index_content(self) -> None:
         post_tag = """
@@ -72,9 +114,6 @@ class Settings(object):
                         '#img_src', html.cover_src)
                 else:
                     self._index_content_for_categs(lang, inode, post_tag)
-                    
-            # with open(self._site_path/lang/'index.html', 'r') as f:
-            #     top, end = f.read().split('<!-- CONTENT -->')
 
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(f'{top}{content}{end}')
@@ -103,33 +142,6 @@ class Settings(object):
 
         with open(self._site_path/lang/inode/'index.html', 'w') as f:
             f.write(f'{top}{sub_content}{end}')
-
-    def _clear(self) -> None:
-        for node in os.listdir(self._site_path):
-            if os.path.isdir(self._site_path/node) and node not in self._langs:
-                # shutil.rmtree(self._site_path/node)
-                with open(self._data_path/'clear.html', 'r') as file_:
-                    html_clear = file_.read()
-                html_clear = html_clear.replace(
-                    'const defaultLang = "en-US";',
-                    f'const defaultLang = "{self._langs[0]}";')
-                with open(self._site_path/node/'index.html', 'w') as file_:
-                    file_.write(html_clear)
-
-    def _hash(self, path: str):
-        h = hashlib.new('md5')  # sha256
-        with open(path, 'rb') as file_:
-            while True:
-                data = file_.read(65536)
-                if not data:
-                    break
-                h.update(data)
-        return h.hexdigest()
-
-    def _html_base(self) -> list:
-        with open(self._data_path/'index.html', 'r') as file_:
-            html = file_.read()
-        return html.split('<!-- / -->')
 
     def _langs_code(self) -> list:
         langs = []
