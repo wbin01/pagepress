@@ -81,23 +81,21 @@ class SetPages(object):
 
     def _index_content(self) -> None:
         card = """
-            <a href="#link">
-             <div class="row text-light m-4 p-0 position-relative shadow">
-              <div class="col-md-6 m-0 p-0">
-               <img src="#img_src" height="150" class="{}" alt="">
+            <a class="text-decoration-none" href="#link">
+             <div class="row m-4 p-0 position-relative text-body d-flex {} {}">
+              <div class="col-md-4 m-0 p-0">
+               <img src="#img_src" height="100" class="{}" alt="">
               </div>
-              <div class="col-md-6 m-0 p-0 {}"></div>
-              <div class="position-absolute bottom-0 m-0 p-0">
-               <div class="mx-2 text-center" style="{}">
-                <h3 class="m-0 p-1">#title</h3>
-               </div>
+              <div class="col-md-8 m-0 p-0 d-flex align-items-center" {}>
+               <h3 class="m-0 p-1">#title</h3>
               </div>
              </div>
             </a>
             """.replace(' '*10, '').format(
-            'card-img object-fit-cover',
-            'border border-start-0 border-secondary border-opacity-25',
-            'background-color: #000000DD;')
+                'align-items-center shadow',
+                'border border-secondary border-opacity-25 rounded',
+                'card-img object-fit-cover',
+                'style="min-height:70px;"')
 
         cover = """+
             <div style="width:100%; height:300;">
