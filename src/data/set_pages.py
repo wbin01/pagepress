@@ -103,16 +103,19 @@ class SetPages(object):
             </div>
             """.replace(' '*10, '').replace('+\n', '')
         
-        title = """+
+        title = """
             <!-- Title -->
             <div class="position-relative text-light text-center">
-            <header class="position-absolute w-100 top-100 start-50 translate-middle">
-             <h1 class="post-title m-4 p-1" style="{}">#title</h1>
+            <header class="position-absolute w-100 bottom-0 m-0">
+             <h1 class="post-title m-0 p-1 pt-2" style="{}">#title</h1>
             </header>
-            </div>
-            <div class="m-4 p-3"></div>
-            \n""".replace(' '*10, '').replace('+\n', '').format(
-                'background-color: #000000DD;')
+            </div><div class="m-4 p-3"></div>
+
+            <!-- Content -->\n""".replace(' '*10, '').format(
+                'text-shadow: 2px 2px 5px #000;'
+                'min-height: 80px; background: #000000;'
+                'background: linear-gradient(0deg, rgba(0, 0, 0, 0.76) 0%, '
+                'rgba(0, 0, 0, 0.6) 27%, rgba(0, 0, 0, 0) 100%);')
 
         content = ''
         for lang in self._langs:
