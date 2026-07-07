@@ -37,8 +37,7 @@ class HTMLRender(object):
 
     @cover.setter
     def cover(self, cover: str) -> None:
-        if cover:
-            self._body = self._body.replace(self._cover, cover)
+        self._body = self._body.replace(self._cover, cover)
         self._cover = cover
 
     @property
@@ -52,7 +51,9 @@ class HTMLRender(object):
     @property
     def html(self) -> str:
         self._html += self._top
-        self._html += '\n<!-- BODY INIT -->\n' + self._body + '\n<!-- BODY END -->\n'
+        self._html += self._cover
+        self._html += self._title
+        self._html += self._body + '\n'
         self._html += self._modals
         self._html += self._end
         return self._html
@@ -99,8 +100,7 @@ class HTMLRender(object):
 
     @title.setter
     def title(self, title: str) -> None:
-        if title:
-            self._body = self._body.replace(self._title, title)
+        self._body = self._body.replace(self._title, title)
         self._title = title
 
     @property
@@ -189,6 +189,7 @@ class HTMLRender(object):
                 tag = f'\n   <{tag}{class_}>{text}</{tag}>\n'
                 tag = f'\n  <!-- Title -->\n  <header>{tag}  </header>\n\n'
                 self._title = tag
+                tag = ''
 
             elif tag == 'div' and parse_tag == 'comment_modal':
                 tag = (
@@ -230,7 +231,7 @@ class HTMLRender(object):
                 if not self._cover:
                     self._cover = tag
                     self._cover_src = src
-                    tag = f'  <!-- Cover -->\n{tag}'
+                    tag = ''
             else:
                 class_ = ''
                 if 'align' in style: class_ = f'text-' + style['align']

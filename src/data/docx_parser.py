@@ -282,7 +282,10 @@ class DocxParser(object):
             align = re.findall(r'<w:jc w:val=\"([^\"]+)\"/>', xml)
             if align: parse['style']['align'] = align[0]
 
-            if parse['meta']['id']: doc_parse.append(parse)
+            if parse['meta']['id']:
+                if parse['tag'] != 'img' and not parse['children']:
+                    continue
+                doc_parse.append(parse)
 
         return doc_parse
 
@@ -297,6 +300,6 @@ class DocxParser(object):
 
 
 if __name__ == '__main__':
-    parser = DocxParser('/home/user/Documento1.docx')
+    parser = DocxParser('/home/user/Dev/github/pagepress/src/docs/en-US/Religion/Em Nome do Pai.docx')
     # print(parser)
-    # parser.print(True, True)
+    parser.print(True, True)

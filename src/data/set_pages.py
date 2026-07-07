@@ -80,6 +80,7 @@ class SetPages(object):
     def _html_formatted_content(
         self, html: HTMLRender, top: str, end: str) -> HTMLRender:
         cover = """+
+            <!-- Cover -->
             <div style="width:100%; height:300;">
             <img height="300" class="card-img object-fit-cover" src="#img">
             </div>
