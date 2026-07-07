@@ -29,6 +29,7 @@ class HTMLRender(object):
 
         self._icon_close = icon = SvgIconToHTML('close').html
         self._icon_book = icon = SvgIconToHTML('book').html
+        self._icon_plus_ref = icon = SvgIconToHTML('plus-ref').html
         self._set_html()
 
     @property
@@ -255,10 +256,12 @@ class HTMLRender(object):
         text = ''
 
         # Tag start
+        is_comment = False
         for tag in run['tags']:
             if tag['tag'] == 'comment':
-                text += ('<a type="button" class="ref_button '
+                text += ('<a type="button" class="ref_button text-decoration-none '
                     'd-print-none" data-bs-toggle="modal" ')
+                is_comment = True
 
             elif tag['tag'] == 'bg':
                 text += '<span class="bg"'
@@ -275,8 +278,13 @@ class HTMLRender(object):
             text += '>'
 
         # Text
-        if run['text'] == 'book':
-            text += self._icon_book
+        if is_comment:
+            if run['text'] == 'book':
+                text += self._icon_book
+            elif run['text'] == '+':
+                text += self._icon_plus_ref
+            else:
+                text += run['text']
         else:
             text += run['text']
         
