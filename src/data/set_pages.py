@@ -46,9 +46,7 @@ class SetPages(object):
                     file_.write(html_clear)
 
         for lang in self._langs:
-            # index
             self._delete_missing_inodes(lang)
-            # Categs
             for inode in os.listdir(self._site_path/lang):
                 if os.path.isdir(self._site_path/lang/inode):
                     self._delete_missing_inodes(f'{lang}/{inode}')
@@ -79,6 +77,39 @@ class SetPages(object):
             html = file_.read()
         return html.split('<!-- / -->')
 
+    def _html_formatted_content(
+        self, html: HTMLRender, top: str, end: str) -> HTMLRender:
+        cover = """+
+            <div style="width:100%; height:300;">
+            <img height="300" class="card-img object-fit-cover" src="#img">
+            </div>
+            """.replace(' '*10, '').replace('+\n', '')
+        
+        title = """
+            <!-- Title -->
+            <div class="position-relative text-light text-center">
+            <header class="position-absolute w-100 bottom-0 m-0">
+             <h1 class="post-title m-0 p-1 pt-2" style="{}">#title</h1>
+            </header>
+            </div><div class="m-4 p-3"></div>
+
+            <div class="container-lg">
+            <!-- Content -->\n""".replace(' '*10, '').format(
+                'text-shadow: 2px 2px 5px #000;'
+                'min-height: 80px; background: #000000;'
+                'background: linear-gradient(0deg, rgba(0, 0, 0, 0.76) 0%, '
+                'rgba(0, 0, 0, 0.6) 27%, rgba(0, 0, 0, 0) 100%);')
+
+        content_end = ' </div>\n  <!-- Content end-->\n </article>'
+
+        html.start = top
+        html.cover = cover.replace('#img', html.cover_src)
+        html.title = title.replace('#title', html.title_text)
+        html.body = html.body.replace('</article>', content_end)
+        html.end = end
+
+        return html
+
     def _index_content(self) -> None:
         card = """
             <a class="text-decoration-none" href="#link">
@@ -97,26 +128,6 @@ class SetPages(object):
                 'card-img object-fit-cover',
                 'style="min-height:70px;"')
 
-        cover = """+
-            <div style="width:100%; height:300;">
-            <img height="300" class="card-img object-fit-cover" src="#img">
-            </div>
-            """.replace(' '*10, '').replace('+\n', '')
-        
-        title = """
-            <!-- Title -->
-            <div class="position-relative text-light text-center">
-            <header class="position-absolute w-100 bottom-0 m-0">
-             <h1 class="post-title m-0 p-1 pt-2" style="{}">#title</h1>
-            </header>
-            </div><div class="m-4 p-3"></div>
-
-            <!-- Content -->\n""".replace(' '*10, '').format(
-                'text-shadow: 2px 2px 5px #000;'
-                'min-height: 80px; background: #000000;'
-                'background: linear-gradient(0deg, rgba(0, 0, 0, 0.76) 0%, '
-                'rgba(0, 0, 0, 0.6) 27%, rgba(0, 0, 0, 0) 100%);')
-
         content = ''
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as f:
@@ -124,50 +135,42 @@ class SetPages(object):
 
             for inode in os.listdir(self._docs_path/lang):
                 if os.path.isfile(self._docs_path/lang/inode):
-                    if not inode.endswith('.docx'): continue
-                    name = inode.replace('.docx', '.html')
+                    if not inode.endswith('.docx'):
+                        continue
 
+                    name = inode.replace('.docx', '.html')
                     html = HTMLRender(DocxParser(self._docs_path/lang/inode))
-                    html.start = top
-                    html.cover = cover.replace('#img', html.cover_src)
-                    html.title = title.replace('#title', html.title_text)
-                    html.end = end
+                    html = self._html_formatted_content(html, top, end)
                     html.save(self._site_path/lang/name)
 
                     content += card.replace(
                         '#title', html.title_text).replace(
-                        '#content', html.title_text).replace(
                         '#link', name).replace(
                         '#img_src', html.cover_src)
                 else:
-                    self._index_content_for_categs(
-                        lang, inode, card, cover, title)
+                    self._index_content_for_categs(lang, inode, card)
 
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(f'{top}{content}{end}')
 
     def _index_content_for_categs(
-            self, lang: str, inode: str, card: str, cover: str, title: str
-            ) -> None:
+            self, lang: str, inode: str, card: str) -> None:
         sub_content = ''
         with open(self._site_path/lang/inode/'index.html', 'r') as f:
             top, end = f.read().split('<!-- CONTENT -->')
 
         for item in os.listdir(self._docs_path/lang/inode):
             if os.path.isdir(self._docs_path/lang/inode/item): continue
-            if not item.endswith('.docx'): continue
-
+            if not item.endswith('.docx'):
+                continue
+            
             name = item.replace('.docx', '.html')
             html = HTMLRender(DocxParser(self._docs_path/lang/inode/item))
-            html.start = top
-            html.cover = cover.replace('#img', html.cover_src)
-            html.title = title.replace('#title', html.title_text)
-            html.end = end
+            html = self._html_formatted_content(html, top, end)
             html.save(self._site_path/lang/inode/name)
 
             sub_content += card.replace(
                 '#title', html.title_text).replace(
-                '#content', html.title_text).replace(
                 '#link', name).replace(
                 '#img_src', html.cover_src)
 

@@ -51,9 +51,8 @@ class HTMLRender(object):
 
     @property
     def html(self) -> str:
-        self._html = ''
         self._html += self._top
-        self._html += self._body + '\n'
+        self._html += '\n<!-- BODY INIT -->\n' + self._body + '\n<!-- BODY END -->\n'
         self._html += self._modals
         self._html += self._end
         return self._html
