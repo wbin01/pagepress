@@ -110,7 +110,7 @@ class SetPages(object):
             </header>
             </div><div class="m-4 #pd"></div>
 
-            <div class="container-lg">
+            <div class="container-lg content">
             <!-- Content -->\n""".replace(' '*10, '')
 
         title_st = (

@@ -49,10 +49,10 @@ class DocxParser(object):
         print('=== BODY ===')
         print()
         self._parse_print(self._doc_parse, hidde_xml, hidde_xml_style)
-        print()
-        print('=== COMMENTS ===')
-        print()
-        self._parse_print(self._comments_parse, hidde_xml, hidde_xml_style)
+        # print()
+        # print('=== COMMENTS ===')
+        # print()
+        # self._parse_print(self._comments_parse, hidde_xml, hidde_xml_style)
 
     def _parse_print(
             self,
@@ -60,7 +60,7 @@ class DocxParser(object):
             hidde_xml: bool = True,
             hidde_xml_style: bool = True) -> None:
 
-        for x in parse_list:
+        for x in parse_list[:3]:
             for k, v in x.items():
                 if k == 'children':
                     if not v:
@@ -157,7 +157,7 @@ class DocxParser(object):
                 'id': '', 'xml_doc': xml, 'xml_style': '', 'source': 'docx'}}
 
             # H, Quote...
-            if '<w:pStyle w:val="' in xml:
+            if '<w:pStyle w:val="' in xml and '<v:imagedata' not in xml:
                 # id
                 id_ = re.findall(r'<w:pStyle w:val=\"(\d+)\"/>', xml)
                 if id_: parse['meta']['id'] = id_[0]
@@ -300,6 +300,6 @@ class DocxParser(object):
 
 
 if __name__ == '__main__':
-    parser = DocxParser('/home/user/Dev/github/pagepress/src/docs/en-US/Religion/Em Nome do Pai.docx')
+    parser = DocxParser('#')
     # print(parser)
-    parser.print(True, True)
+    parser.print(False, True)
