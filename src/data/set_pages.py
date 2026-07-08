@@ -247,11 +247,12 @@ class SetPages(object):
             for node in os.listdir(self._docs_path/lang):
                 if os.path.isdir(self._docs_path/lang/node):
                     li_itens += """
-                        <li class="nav-item">
-                         <a {} class="nav-link" href="{}/index.html">{}</a>
+                        <li class="nav-item m-0 p-0">
+                         <a {} {} href="{}/index.html">{}</a>
                         </li>
                         """.replace(' '*24, ' '*5).format(
-                            'aria-current="page"', node, node)
+                            'aria-current="page"',
+                            'class="m-0 mx-2 p-0 nav-link"', node, node)
 
             new_index = index.replace('<!-- NAV ITEM -->', li_itens)
             with open(self._site_path/lang/'index.html', 'w+') as f:
