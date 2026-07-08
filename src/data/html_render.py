@@ -27,9 +27,9 @@ class HTMLRender(object):
         self._end = ''
         self._html = ''
 
-        self._icon_close = icon = SvgIconToHTML('close').html
-        self._icon_book = icon = SvgIconToHTML('book').html
-        self._icon_plus_ref = icon = SvgIconToHTML('plus-ref').html
+        self._icon_close = SvgIconToHTML('close').html
+        self._icon_book = SvgIconToHTML('book').html
+        self._icon_plus_ref = SvgIconToHTML('plus-ref').html
         self._set_html()
 
     @property

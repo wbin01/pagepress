@@ -8,9 +8,9 @@ PATH = Path(__file__).resolve().parent.parent
 
 
 class SvgIconToHTML(object):
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, path: str = 'default') -> None:
         self._name = name
-        self._path = PATH/'data'/'icons'/'default'/f'{name}.svg' # .as_posix()
+        self._path = PATH/'data'/'icons'/path/f'{name}.svg' # .as_posix()
         self._html = None
 
     def __repr__(self) -> str:

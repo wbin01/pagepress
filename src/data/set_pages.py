@@ -6,6 +6,7 @@ import locale
 import shutil
 from pathlib import Path
 
+from .conf_file import ConfFile
 from .docx_parser import DocxParser
 from .html_render import HTMLRender
 from .svg_icon_to_html import SvgIconToHTML
@@ -33,14 +34,38 @@ class SetPages(object):
         with open(self._data_path/'blank.txt', 'r') as n:
             self._blank_img = n.read().replace('\n', '').strip()
 
-        self._icon_close = icon = SvgIconToHTML('close').html
+        if not (PATH/'page.conf').is_file():
+            shutil.copy(self._data_path/'page.conf', PATH/'page.conf')
+        self._conf = ConfFile(PATH/'page.conf').content
 
+        self._icon_close = SvgIconToHTML('close').html
+
+        self._brand()
         self._nav_langs()
         self._nav_langs_index()
         self._nav_categs()
         self._nav_categs_index()
         self._index_content()
         self._clear()
+
+    def _brand(self) -> None:
+        name = ''
+        if self._conf['[Brand]']['DisplayName'] == 'true':
+            name = self._conf['[Brand]']['Name']
+
+        logo = ''
+        if self._conf['[Brand]']['DisplayLogo'] == 'true':
+            logo = (PATH/self._conf['[Brand]']['Logo']).as_posix()
+
+        self._html_top = self._html_top.replace(
+            '#brand', logo
+            ).replace(
+            '#favicon', (PATH/self._conf['[Brand]']['Favicon']).as_posix()
+            ).replace(
+            '<!-- TAB TITLE-->', self._conf['[Brand]']['Name']
+            ).replace(
+            '<!-- PAGE NAME -->', name
+            )
 
     def _clear(self) -> None:
         for node in os.listdir(self._site_path):
@@ -313,7 +338,7 @@ class SetPages(object):
         self._html_top = self._html_top.replace(
             '<!-- LANGS -->', langs).replace(
             '<!-- CLOSE ICON -->', self._icon_close)
-    
+
     def _nav_langs_index(self) -> None:
         index_start = self._html_top.replace(
             '<html lang="en-US"',
