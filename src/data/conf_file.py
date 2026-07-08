@@ -55,6 +55,24 @@ class ConfFile(object):
         """
         return self.__url
 
+    def update_file(self) -> None:
+        """Updates the file with the new, modified settings."""
+        self.content
+        
+        txt = ''
+        for name in self.__content.keys():
+            if name == '[': continue
+
+            txt += f'{name}\n'
+            for key, value in self.__content[name].items():
+                txt += f'{key}={value}\n'
+            txt += f'\n'
+
+        with open(self.__url, 'w+') as f:
+            f.write(txt.replace('\n\n', '\n'))
+
+        self.__parse_file_to_dict()
+
     def __parse_file_to_dict(self) -> None:
         with open(self.__url, 'r') as ini_file:
             ini_text = ini_file.read()

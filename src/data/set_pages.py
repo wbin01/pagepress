@@ -36,7 +36,8 @@ class SetPages(object):
 
         if not (PATH/'page.conf').is_file():
             shutil.copy(self._data_path/'page.conf', PATH/'page.conf')
-        self._conf = ConfFile(PATH/'page.conf').content
+        self._conf_user = ConfFile(PATH/'page.conf').content
+        self._conf_page = ConfFile(self._data_path/'page.conf').content
 
         self._icon_close = SvgIconToHTML('close').html
 
@@ -50,19 +51,19 @@ class SetPages(object):
 
     def _brand(self) -> None:
         name = ''
-        if self._conf['[Brand]']['DisplayName'] == 'true':
-            name = self._conf['[Brand]']['Name']
+        if self._conf('Brand', 'DisplayName') == 'true':
+            name = self._conf('Brand', 'Name')
 
         logo = ''
-        if self._conf['[Brand]']['DisplayLogo'] == 'true':
-            logo = (PATH/self._conf['[Brand]']['Logo']).as_posix()
+        if self._conf('Brand', 'DisplayLogo') == 'true':
+            logo = (PATH/self._conf('Brand', 'Logo')).as_posix()
 
         self._html_top = self._html_top.replace(
             '#brand', logo
             ).replace(
-            '#favicon', (PATH/self._conf['[Brand]']['Favicon']).as_posix()
+            '#favicon', (PATH/self._conf('Brand', 'Favicon')).as_posix()
             ).replace(
-            '<!-- TAB TITLE-->', self._conf['[Brand]']['Name']
+            '<!-- TAB TITLE-->', self._conf('Brand', 'Name')
             ).replace(
             '<!-- PAGE NAME -->', name
             )
@@ -84,6 +85,24 @@ class SetPages(object):
             for inode in os.listdir(self._site_path/lang):
                 if os.path.isdir(self._site_path/lang/inode):
                     self._delete_missing_inodes(f'{lang}/{inode}')
+
+    def _conf(self, name: str, key: str) -> str:
+        if name in self._conf_user and key in self._conf_user[f'[{name}]']:
+            return self._conf_user[f'[{name}]'][key]
+
+        value = self._conf_page[f'[{name}]'][key]
+
+        conf_user = ConfFile(PATH/'page.conf')
+
+        if f'[{name}]' not in conf_user.content:
+            conf_user.content[f'[{name}]'] = {key: value}
+        else:
+            conf_user.content[f'[{name}]'][key] = value
+        
+        conf_user.update_file()
+        self._conf_user = conf_user.content
+
+        return value
 
     def _delete_missing_inodes(self, inode_path):
         docs = [x for x in os.listdir(self._docs_path/inode_path)]
