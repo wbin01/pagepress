@@ -104,7 +104,7 @@ class SetPages(object):
         
         title = """
             <!-- Title -->
-            <div class="position-relative text-light text-center">
+            <div class="position-relative text-light text-center text-uppercase">
             <header class="position-absolute w-100 bottom-0 m-0">
              <h1 class="post-title m-0 p-1 pt-2" style="#style">#title</h1>
             </header>
@@ -144,7 +144,7 @@ class SetPages(object):
                <img src="#img_src" height="100" class="{}" alt="">
               </div>
               <div class="col-md-8 m-0 p-0 d-flex align-items-center" {}>
-               <h3 class="m-0 ms-1 p-1">#title</h3>
+               <h4 class="m-0 ms-1 p-1 text-uppercase">#title</h4>
               </div>
              </div>
             </a>
