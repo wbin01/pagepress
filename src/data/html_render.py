@@ -38,7 +38,6 @@ class HTMLRender(object):
 
     @cover.setter
     def cover(self, cover: str) -> None:
-        self._body = self._body.replace(self._cover, cover)
         self._cover = cover
 
     @property
@@ -101,7 +100,6 @@ class HTMLRender(object):
 
     @title.setter
     def title(self, title: str) -> None:
-        self._body = self._body.replace(self._title, title)
         self._title = title
 
     @property
@@ -229,7 +227,7 @@ class HTMLRender(object):
                     '   <figcaption></figcaption>\n'
                     '  </figure>\n')
                 
-                if not self._cover:
+                if not self._cover and not self._title:
                     self._cover = tag
                     self._cover_src = src
                     tag = ''

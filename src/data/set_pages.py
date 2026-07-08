@@ -26,6 +26,12 @@ class SetPages(object):
         self._html_top, self._html_end = self._html_base()
         self._langs = self._langs_code()
 
+        with open(self._data_path/'noise.txt', 'r') as n:
+            self._noise_img = n.read().replace('\n', '').strip()
+
+        with open(self._data_path/'blank.txt', 'r') as n:
+            self._blank_img = n.read().replace('\n', '').strip()
+
         self._nav_langs()
         self._nav_langs_index()
         self._nav_categs()
@@ -78,11 +84,21 @@ class SetPages(object):
         return html.split('<!-- / -->')
 
     def _html_formatted_content(
-        self, html: HTMLRender, top: str, end: str) -> HTMLRender:
+            self, html: HTMLRender, top: str, end: str) -> HTMLRender:
         cover = """+
             <!-- Cover -->
-            <div style="width:100%; height:300;">
-            <img height="300" class="card-img object-fit-cover" src="#img">
+            <div class="position-relative" style="width:100%; height:300px;">
+             <img style="height:300px;width:100%;object-fit:cover;" src="#img">
+             <div class="{}" style="background-image:url('{}'); {}"></div>
+            </div>
+            """.replace(' '*10, '').replace('+\n', '').format(
+                'position-absolute top-0 start-0 border border-0',
+                self._noise_img, 'background-repeat:repeat; height:300px; '
+                'width:100%; border:0px; opacity: 0.7;')
+         
+        cover_alt = """+
+            <!-- Cover -->
+            <div class="position-relative" style="width:100%; height:100px;">
             </div>
             """.replace(' '*10, '').replace('+\n', '')
         
@@ -90,16 +106,24 @@ class SetPages(object):
             <!-- Title -->
             <div class="position-relative text-light text-center">
             <header class="position-absolute w-100 bottom-0 m-0">
-             <h1 class="post-title m-0 p-1 pt-2" style="{}">#title</h1>
+             <h1 class="post-title m-0 p-1 pt-2" style="#style">#title</h1>
             </header>
-            </div><div class="m-4 p-3"></div>
+            </div><div class="m-4 #pd"></div>
 
             <div class="container-lg">
-            <!-- Content -->\n""".replace(' '*10, '').format(
-                'text-shadow: 2px 2px 5px #000;'
-                'min-height: 80px; background: #000000;'
-                'background: linear-gradient(0deg, rgba(0, 0, 0, 0.76) 0%, '
-                'rgba(0, 0, 0, 0.6) 27%, rgba(0, 0, 0, 0) 100%);')
+            <!-- Content -->\n""".replace(' '*10, '')
+
+        title_st = (
+            'text-shadow: 2px 2px 5px #000;'
+            'min-height: 80px; background: #000000;'
+            'background: linear-gradient(0deg, rgba(0, 0, 0, 0.76) 0%, '
+            'rgba(0, 0, 0, 0.6) 27%, rgba(0, 0, 0, 0) 100%);', 'pb-2')
+        
+        if not html.cover:
+            cover = cover_alt
+            title_st = 'text-shadow: 2px 2px 5px #000;min-height: 80px;', ''
+            title_padding = ''
+        title = title.replace('#style', title_st[0]).replace('#pd',title_st[1])
 
         content_end = ' </div>\n  <!-- Content end-->\n </article>'
 
@@ -119,13 +143,13 @@ class SetPages(object):
                <img src="#img_src" height="100" class="{}" alt="">
               </div>
               <div class="col-md-8 m-0 p-0 d-flex align-items-center" {}>
-               <h3 class="m-0 p-1">#title</h3>
+               <h3 class="m-0 ms-1 p-1">#title</h3>
               </div>
              </div>
             </a>
             """.replace(' '*10, '').format(
                 'align-items-center shadow',
-                'border border-secondary border-opacity-25 rounded',
+                'border border-secondary border-opacity-25',
                 'card-img object-fit-cover',
                 'style="min-height:70px;"')
 
@@ -144,6 +168,7 @@ class SetPages(object):
                     html = self._html_formatted_content(html, top, end)
                     html.save(self._site_path/lang/name)
 
+                    if not html.cover_src: html.cover_src = self._blank_img
                     content += card.replace(
                         '#title', html.title_text).replace(
                         '#link', name).replace(
@@ -170,6 +195,7 @@ class SetPages(object):
             html = self._html_formatted_content(html, top, end)
             html.save(self._site_path/lang/inode/name)
 
+            if not html.cover_src: html.cover_src = self._blank_img
             sub_content += card.replace(
                 '#title', html.title_text).replace(
                 '#link', name).replace(
