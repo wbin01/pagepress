@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .docx_parser import DocxParser
 from .html_render import HTMLRender
+from .svg_icon_to_html import SvgIconToHTML
 
 
 PATH = Path(__file__).resolve().parent.parent
@@ -31,6 +32,8 @@ class SetPages(object):
 
         with open(self._data_path/'blank.txt', 'r') as n:
             self._blank_img = n.read().replace('\n', '').strip()
+
+        self._icon_close = icon = SvgIconToHTML('close').html
 
         self._nav_langs()
         self._nav_langs_index()
@@ -139,7 +142,7 @@ class SetPages(object):
     def _index_content(self) -> None:
         card = """
             <a class="text-decoration-none" href="#link">
-             <div class="row m-4 p-0 position-relative text-body d-flex {} {}">
+             <div class="row m-4 p-0 position-relative text-body d-flex {}">
               <div class="col-md-4 m-0 p-0">
                <img src="#img_src" height="100" class="{}" alt="">
               </div>
@@ -149,7 +152,7 @@ class SetPages(object):
              </div>
             </a>
             """.replace(' '*10, '').format(
-                'align-items-center shadow',
+                'align-items-center shadow card-index '
                 'border border-secondary border-opacity-25',
                 'card-img object-fit-cover',
                 'style="min-height:70px;"')
@@ -281,12 +284,16 @@ class SetPages(object):
     def _nav_langs(self) -> None:
         tag_li = """
             <li>
-             <a class="dropdown-item" onclick="changeLang('#lang')" href="{}">
+             <a class="{}" onclick="changeLang('#lang')" href="{}">
               <img {} src="{}" onerror="{}; this.src='{}';" width="20" />
               #lang
              </a>
             </li>
+            <div class="text-body opacity-25 m-0 p-0">
+             <hr class="m-1 p-0">
+            </div>
             """.replace(' '*12, ' '*9).format(
+                'dropdown-item m-0 p-0',
                 '../#lang/index.html', 'class="m-1"',
                 'https://hatscripts.github.io/circle-flags/flags/#icon.svg',
                 'this.onerror=null',
@@ -303,7 +310,9 @@ class SetPages(object):
                 'href="#" role="button" data-bs-toggle="dropdown" '
                 'aria-expanded="false"> en-US </a>', '<span></span>')
 
-        self._html_top = self._html_top.replace('<!-- LANGS -->', langs)
+        self._html_top = self._html_top.replace(
+            '<!-- LANGS -->', langs).replace(
+            '<!-- CLOSE ICON -->', self._icon_close)
     
     def _nav_langs_index(self) -> None:
         index_start = self._html_top.replace(
