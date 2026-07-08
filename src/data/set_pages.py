@@ -121,7 +121,8 @@ class SetPages(object):
         
         if not html.cover:
             cover = cover_alt
-            title_st = 'text-shadow: 2px 2px 5px #000;min-height: 80px;', ''
+            title_st = 'min-height:80px;', ''
+            title = title.replace('text-light', 'text-body')
             title_padding = ''
         title = title.replace('#style', title_st[0]).replace('#pd',title_st[1])
 
