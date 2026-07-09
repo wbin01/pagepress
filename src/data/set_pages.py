@@ -36,8 +36,8 @@ class SetPages(object):
 
         if not (PATH/'page.conf').is_file():
             shutil.copy(self._data_path/'page.conf', PATH/'page.conf')
-        self._conf_user = ConfFile(PATH/'page.conf').content
-        self._conf_page = ConfFile(self._data_path/'page.conf').content
+        self._conf_user = ConfFile(PATH/'page.conf')
+        self._conf_page = ConfFile(self._data_path/'page.conf')
 
         self._icon_close = SvgIconToHTML('close').html
 
@@ -87,20 +87,17 @@ class SetPages(object):
                     self._delete_missing_inodes(f'{lang}/{inode}')
 
     def _conf(self, name: str, key: str) -> str:
-        if name in self._conf_user and key in self._conf_user[f'[{name}]']:
-            return self._conf_user[f'[{name}]'][key]
+        if f'[{name}]' in self._conf_user.content:
+            if key in self._conf_user.content[f'[{name}]']:
+                return self._conf_user.content[f'[{name}]'][key]
 
-        value = self._conf_page[f'[{name}]'][key]
+        value = self._conf_page.content[f'[{name}]'][key]
 
-        conf_user = ConfFile(PATH/'page.conf')
-
-        if f'[{name}]' not in conf_user.content:
-            conf_user.content[f'[{name}]'] = {key: value}
+        if f'[{name}]' not in self._conf_user.content:
+            self._conf_user.content[f'[{name}]'] = {key: value}
         else:
-            conf_user.content[f'[{name}]'][key] = value
-        
-        conf_user.update_file()
-        self._conf_user = conf_user.content
+            self._conf_user.content[f'[{name}]'][key] = value
+        self._conf_user.update_file()
 
         return value
 
