@@ -69,7 +69,7 @@ class ConfFile(object):
             txt += f'\n'
 
         with open(self.__url, 'w+') as f:
-            f.write(txt.replace('\n\n', '\n'))
+            f.write(txt.strip('\n\n') + '\n')
 
         self.__parse_file_to_dict()
 

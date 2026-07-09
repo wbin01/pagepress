@@ -51,22 +51,26 @@ class SetPages(object):
 
     def _brand(self) -> None:
         name = ''
-        if self._conf('Brand', 'DisplayName') == 'true':
-            name = self._conf('Brand', 'Name')
+        if self._conf('Brand', 'display_name'):
+            name = self._conf('Brand', 'name')
 
         logo = ''
-        if self._conf('Brand', 'DisplayLogo') == 'true':
-            logo = (PATH/self._conf('Brand', 'Logo')).as_posix()
+        if self._conf('Brand', 'display_logo'):
+            logo = (PATH/self._conf('Brand', 'logo')).as_posix()
 
         self._html_top = self._html_top.replace(
-            '#brand', logo
+            '#brand', logo).replace(
+                '#favicon', (PATH/self._conf('Brand', 'favicon')).as_posix()
             ).replace(
-            '#favicon', (PATH/self._conf('Brand', 'Favicon')).as_posix()
+                '<!-- TAB TITLE-->', self._conf('Brand', 'name')
             ).replace(
-            '<!-- TAB TITLE-->', self._conf('Brand', 'Name')
+                '<!-- PAGE NAME -->', name
             ).replace(
-            '<!-- PAGE NAME -->', name
-            )
+                '#LightSubtitleColor',
+                self._conf('Post:LightTheme', 'subtitle_color')
+            ).replace(
+                '#DarkSubtitleColor',
+                self._conf('Post:DarkTheme', 'subtitle_color'))
 
     def _clear(self) -> None:
         for node in os.listdir(self._site_path):
@@ -99,6 +103,8 @@ class SetPages(object):
             self._conf_user.content[f'[{name}]'][key] = value
         self._conf_user.update_file()
 
+        if value == 'True': value = True
+        if value == 'False': value = False
         return value
 
     def _delete_missing_inodes(self, inode_path):
