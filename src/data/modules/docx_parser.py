@@ -50,10 +50,10 @@ class DocxParser(object):
         print('=== BODY ===')
         print()
         self._parse_print(self._doc_parse, hidde_xml, hidde_xml_style)
-        # print()
-        # print('=== COMMENTS ===')
-        # print()
-        # self._parse_print(self._comments_parse, hidde_xml, hidde_xml_style)
+        print()
+        print('=== COMMENTS ===')
+        print()
+        self._parse_print(self._comments_parse, hidde_xml, hidde_xml_style)
 
     def _parse_print(
             self,

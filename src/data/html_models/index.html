@@ -49,6 +49,60 @@
     font-weight: 400;
     font-style: normal;
   }
+  [data-bs-theme="light"] details summary {
+    list-style: none; /* remove marcador em alguns navegadores */
+    cursor: pointer;
+    margin-top: 0px;
+    margin-bottom: 5px;
+    padding: 0px;
+    color: #LightSubtitleColor;
+  }
+  [data-bs-theme="dark"] details summary {
+    list-style: none;
+    cursor: pointer;
+    margin-top: 0px;
+    margin-bottom: 5px;
+    padding: 0px;
+    color: #DarkSubtitleColor;
+  }
+  details summary p {
+    padding: 0px;
+    margin: 0px;
+  }
+  details summary::-webkit-details-marker {
+    display: none; /* remove seta no Chrome/Safari */
+  }
+  [data-bs-theme="light"] details summary::before {
+    content: "⦊";  /* ▶ › ﹥ 〉⦊*/
+    display: inline-block;
+    margin-right: 8px;
+    transition: transform 0.2s;
+    color: #LightSubtitleColor;
+  }
+  [data-bs-theme="dark"] details summary::before {
+    content: "⦊";
+    display: inline-block;
+    margin-right: 8px;
+    transition: transform 0.2s;
+    color: #DarkSubtitleColor;
+  }
+  details[open] summary::before {
+    transform: rotate(90deg);
+  }
+  details {
+    border-radius: 8px;
+    padding: .5rem 1rem;
+    padding-bottom: .1rem;
+    margin-bottom: .5rem;
+  }
+  [data-bs-theme="light"] details[open] {
+    background: #00000007;
+    border: 1px solid #00000010;
+  }
+  [data-bs-theme="dark"] details[open] {
+    background: #FFFFFF07;
+    border: 1px solid #FFFFFF10;
+  }
 
   [data-bs-theme="light"] .moon-svg-icon { display: none; }
   [data-bs-theme="light"] .bg { border-radius: 3px; background-color: #F4C559;}

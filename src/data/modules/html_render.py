@@ -46,9 +46,9 @@ MODAL = """
       <div class="px-2 mt-2">
        #TEXT
       </div>
-      <div class="modal-footer p-0 m-1">
+      <div class="p-0 m-1">
        <div class="d-grid gap-2 d-flex justify-content-end">
-        <button type="button" class="btn btn-outline-danger btn-sm border *
+        <button type="button" class="btn btn-outline-danger m-2 btn-sm border *
 border-0" data-bs-dismiss="modal" aria-label="Close">
          #ICON_CLOSE
         </button>
@@ -164,6 +164,40 @@ class HTMLRender(object):
     def title_text(self, text: str) -> None:
         self._title_text = text
 
+    def _markdown_to_html(self, text: str) -> str:
+        
+        details = re.findall(r'<p>&gt;[^&]+&lt;</p>', text)
+        if details:
+            is_first = True
+            op = ''
+
+            for detail in details:
+                op = ''
+                if is_first: op = '_OPEN'
+                is_first = False
+
+                summary = content = ''
+                header = re.findall(r'<p>&gt;[^<]+</p>', detail)
+                if header:
+                    content = detail.replace(header[0], '')
+                    content = content.replace('&gt;', '').replace('&lt;', '')
+
+                    summary = header[0].replace('<p>', '').replace('</p>', '')
+                    summary = summary.replace('&gt;', '').replace('&lt;', '')
+                
+                text = text.replace(
+                    detail,
+                    f'!DETAILS{op}!SUMMARY{summary}SUMMARY!{content}DETAILS!')
+
+        text = markdown(text).replace(
+            '!DETAILS_OPEN', f'\n<details open>\n').replace(
+            '!DETAILS', f'\n<details>\n').replace(
+            'DETAILS!', '\n</details>\n').replace(
+            '!SUMMARY', '\n<summary>').replace(
+            'SUMMARY!', '</summary>\n')
+
+        return text
+
     def save(self, path: str = '', html: str = None) -> None:
         if not path: path = self._parser.path
         if not isinstance(path, Path): path = Path(path)
@@ -225,7 +259,7 @@ class HTMLRender(object):
             elif tag == 'div' and parse_tag == 'comment_modal':
                 tag = MODAL.replace(
                     '#ID', id_).replace(
-                    '#TEXT', text).replace(
+                    '#TEXT', self._markdown_to_html(text)).replace(
                     '#ICON_CLOSE', self._icon_close).replace('*\n', '')
 
             elif tag == 'img':
