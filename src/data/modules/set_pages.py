@@ -12,7 +12,7 @@ from .html_render import HTMLRender
 from .svg_icon_to_html import SvgIconToHTML
 
 
-PATH = Path(__file__).resolve().parent.parent
+PATH = Path(__file__).resolve().parent.parent.parent
 
 
 class SetPages(object):
@@ -20,6 +20,7 @@ class SetPages(object):
         self._docs_path = PATH/'docs'
         self._site_path = PATH/'site'
         self._data_path = PATH/'data'
+        self._html_path = self._data_path/'html_models'
 
         self._default_lang = locale.getdefaultlocale()[0].replace('_', '-')
         self._lang = self._default_lang  # locale.normalize(locale)
@@ -28,10 +29,10 @@ class SetPages(object):
         self._html_top, self._html_end = self._html_base()
         self._langs = self._langs_code()
 
-        with open(self._data_path/'noise.txt', 'r') as n:
+        with open(self._data_path/'img64'/'noise.txt', 'r') as n:
             self._noise_img = n.read().replace('\n', '').strip()
 
-        with open(self._data_path/'blank.txt', 'r') as n:
+        with open(self._data_path/'img64'/'blank.txt', 'r') as n:
             self._blank_img = n.read().replace('\n', '').strip()
 
         if not (PATH/'page.conf').is_file():
@@ -76,7 +77,7 @@ class SetPages(object):
         for node in os.listdir(self._site_path):
             if os.path.isdir(self._site_path/node) and node not in self._langs:
                 # shutil.rmtree(self._site_path/node)
-                with open(self._data_path/'clear.html', 'r') as file_:
+                with open(self._html_path/'clear.html', 'r') as file_:
                     html_clear = file_.read()
                 html_clear = html_clear.replace(
                     'const defaultLang = "en-US";',
@@ -129,7 +130,7 @@ class SetPages(object):
         return h.hexdigest()
 
     def _html_base(self) -> list:
-        with open(self._data_path/'index.html', 'r') as file_:
+        with open(self._html_path/'index.html', 'r') as file_:
             html = file_.read()
         return html.split('<!-- / -->')
 

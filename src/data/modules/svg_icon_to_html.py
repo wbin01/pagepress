@@ -4,7 +4,7 @@ from pathlib import Path
 from scour import scour
 
 
-PATH = Path(__file__).resolve().parent.parent
+PATH = Path(__file__).resolve().parent.parent.parent
 
 
 class SvgIconToHTML(object):
