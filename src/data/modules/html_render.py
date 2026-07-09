@@ -5,7 +5,60 @@ import base64
 from markdown import markdown
 from zipfile import ZipFile
 from lxml import etree
-from .svg_icon_to_html import SvgIconToHTML
+
+try:
+    from .svg_icon_to_html import SvgIconToHTML
+except:
+    from svg_icon_to_html import SvgIconToHTML
+
+from pathlib import Path
+
+PATH = Path(__file__).resolve().parent.parent.parent
+
+TOP = """
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>#TITLE</title>
+  <meta charset="utf-8">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.*
+min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYm*
+Dr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.*
+bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9*
+GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <style>
+   h1, h2, h3, h4, h5, h6, h7, h8, h9 { color: #3770BC }
+   .post-title { color: #000000; font-size: 28pt; }
+   .bg { background-color: #F4C559; border-radius: 3px; }
+  </style>
+ </head>
+ <body>
+"""
+
+MODAL = """
+  <!-- Modal #ID -->
+  <div class="modal fade " id="modal#ID" tabindex="-1" aria-labelledby=*
+"#idLabel" aria-hidden="true" data-bs-theme="read">
+   <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+     <div class="modal-body p-0 m-0">
+      <div class="px-2 mt-2">
+       #TEXT
+      </div>
+      <div class="modal-footer p-0 m-1">
+       <div class="d-grid gap-2 d-flex justify-content-end">
+        <button type="button" class="btn btn-outline-danger btn-sm border *
+border-0" data-bs-dismiss="modal" aria-label="Close">
+         #ICON_CLOSE
+        </button>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+"""
 
 
 class DocxParser:
@@ -112,7 +165,8 @@ class HTMLRender(object):
         self._title_text = text
 
     def save(self, path: str = '', html: str = None) -> None:
-        path = path if path else self._parser.path
+        if not path: path = self._parser.path
+        if not isinstance(path, Path): path = Path(path)
         path = path.as_posix().replace('.docx', '.html')
 
         html = html if html else self.html
@@ -130,30 +184,7 @@ class HTMLRender(object):
         for parse in self._parser.parse['comments']:
             self._modals += self._set_html_body(parse, True)
 
-        # Start
-        self._top = (
-            '<!DOCTYPE html>\n'
-            '<html>\n'
-            ' <head>\n'
-            f'  <title>{self._title_text}</title>\n'
-            '  <meta charset="utf-8">\n'
-            '  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/c'
-            'ss/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjp'
-            'PEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossor'
-            'igin="anonymous">\n'
-            '  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/'
-            'js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNk'
-            'mXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anony'
-            'mous"></script>\n'
-            '  <style>\n'
-            '   h1, h2, h3, h4, h5, h6, h7, h8, h9 { color: #3770BC }'
-            '   .post-title { color: #000000; font-size: 28pt; }\n'
-            '   .bg { background-color: #F4C559; border-radius: 3px; }\n'
-            '  </style>\n'
-            ' </head>\n'
-            ' <body>\n\n')
-
-        # End
+        self._top = TOP.replace('#TITLE', self._title_text).replace('*\n', '')
         self._end = f'\n </body>\n</html>'
 
     def _set_html_body(self, parse: dict, modal: bool = False) -> str:
@@ -192,28 +223,10 @@ class HTMLRender(object):
                 tag = ''
 
             elif tag == 'div' and parse_tag == 'comment_modal':
-                tag = (
-                    f'  <!-- Modal {id_} -->\n'
-                    f'  <div class="modal fade " id="modal{id_}" tabindex="-1" '
-                    'aria-labelledby="#idLabel" aria-hidden="true" '
-                    'data-bs-theme="read">\n'
-                    '   <div class="modal-dialog modal-lg '
-                    'modal-dialog-scrollable">\n'
-                    '    <div class="modal-content">\n'
-                    '     <div class="modal-body p-0 m-0">\n\n'
-                    '      <div class="px-2 mt-2">\n'
-                    f'       {text}\n'
-                    '      </div>\n\n'
-                    '      <div class="modal-footer p-0 m-1">\n'
-                    '       <div class="d-grid gap-2 d-flex '
-                    'justify-content-end">\n'
-                    '        <button type="button" class="btn '
-                    'btn-outline-danger btn-sm border border-0" '
-                    'data-bs-dismiss="modal" aria-label="Close">\n'
-                    f'         {self._icon_close}\n'
-                    '        </button>\n'
-                    '       </div>\n      </div>\n\n     </div>\n    </div>\n'
-                    '   </div>\n  </div>\n')
+                tag = MODAL.replace(
+                    '#ID', id_).replace(
+                    '#TEXT', text).replace(
+                    '#ICON_CLOSE', self._icon_close).replace('*\n', '')
 
             elif tag == 'img':
                 class_ = styl = ''
@@ -258,7 +271,8 @@ class HTMLRender(object):
         is_comment = False
         for tag in run['tags']:
             if tag['tag'] == 'comment':
-                text += ('<a type="button" class="ref_button text-decoration-none '
+                text += (
+                    '<a type="button" class="ref_button text-decoration-none '
                     'd-print-none" data-bs-toggle="modal" ')
                 is_comment = True
 
@@ -307,8 +321,8 @@ class HTMLRender(object):
 
 
 if __name__ == '__main__':
-    from .docx_parser import DocxParser
-    docx = DocxParser('/home/user/Documento1.docx')
+    from docx_parser import DocxParser
+
+    docx = DocxParser('/home/user/doc.docx')
     html = HTMLRender(docx)
-    print(html._title)
     html.save()

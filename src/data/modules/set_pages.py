@@ -289,6 +289,7 @@ class SetPages(object):
         with open(self._html_path/'langs.html', 'r') as f:
             lang_btn, lang_item = f.read().split('<!-- / -->')
             lang_btn = lang_btn.replace('\n', '').strip()
+            lang_item = lang_item.replace('\n', '\n' + (' '*10))
 
         langs = ''
         for lang in self._langs:

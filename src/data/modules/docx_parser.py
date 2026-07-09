@@ -3,11 +3,12 @@ import re
 import base64
 from zipfile import ZipFile
 from lxml import etree
+from pathlib import Path
 
 
 class DocxParser(object):
     def __init__(self, path: str) -> None:
-        self._path = path
+        self._path = Path(path)
 
         # Files
         with ZipFile(path) as docx:  # docx.read(url).decode('utf-8')
