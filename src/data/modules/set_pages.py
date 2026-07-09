@@ -205,8 +205,8 @@ class SetPages(object):
                 'card-img object-fit-cover',
                 'style="min-height:70px;"')
 
-        content = ''
         for lang in self._langs:
+            content = ''
             with open(self._site_path/lang/'index.html', 'r') as f:
                 top, end = f.read().split('<!-- CONTENT -->')
 

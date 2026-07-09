@@ -2,6 +2,7 @@
 import re
 import base64
 
+from markdown import markdown
 from zipfile import ZipFile
 from lxml import etree
 from .svg_icon_to_html import SvgIconToHTML
