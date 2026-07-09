@@ -135,51 +135,21 @@ class SetPages(object):
         return html.split('<!-- / -->')
 
     def _html_formatted_content(
-            self, html: HTMLRender, top: str, end: str) -> HTMLRender:
-        cover = """+
-            <!-- Cover -->
-            <div class="position-relative" style="width:100%; height:300px;">
-             <img style="height:300px;width:100%;object-fit:cover;" src="#img">
-             <div class="{}" style="background-image:url('{}'); {}"></div>
-            </div>
-            """.replace(' '*10, '').replace('+\n', '').format(
-                'position-absolute top-0 start-0 border border-0',
-                self._noise_img, 'background-repeat:repeat; height:300px; '
-                'width:100%; border:0px; opacity: 0.7;')
-         
-        cover_alt = """+
-            <!-- Cover -->
-            <div class="position-relative" style="width:100%; height:100px;">
-            </div>
-            """.replace(' '*10, '').replace('+\n', '')
-        
-        title = """
-            <!-- Title -->
-            <div class="position-relative text-light text-center text-uppercase">
-            <header class="position-absolute w-100 bottom-0 m-0">
-             <h1 class="post-title m-0 p-1 pt-2" style="#style">#title</h1>
-            </header>
-            </div><div class="m-4 #pd"></div>
+            self, html: HTMLRender, start: str, end: str) -> HTMLRender:
 
-            <div class="container-lg content">
-            <!-- Content -->\n""".replace(' '*10, '')
+        with open(self._html_path/'cover.html', 'r') as f:
+            cover = f.read().replace('#image', self._noise_img)
+            cover, cover_alt = cover.split('<!-- / -->')
 
-        title_st = (
-            'text-shadow: 2px 2px 5px #000;'
-            'min-height: 80px; background: #000000;'
-            'background: linear-gradient(0deg, rgba(0, 0, 0, 0.76) 0%, '
-            'rgba(0, 0, 0, 0.6) 27%, rgba(0, 0, 0, 0) 100%);', 'pb-2')
+        with open(self._html_path/'title.html', 'r') as f:
+            title, title_alt = f.read().split('<!-- / -->')
         
         if not html.cover:
             cover = cover_alt
-            title_st = 'min-height:80px;', ''
-            title = title.replace('text-light', 'text-body')
-            title_padding = ''
-        title = title.replace('#style', title_st[0]).replace('#pd',title_st[1])
+            title = title_alt
 
         content_end = ' </div>\n  <!-- Content end-->\n </article>'
-
-        html.start = top
+        html.start = start
         html.cover = cover.replace('#img', html.cover_src)
         html.title = title.replace('#title', html.title_text)
         html.body = html.body.replace('</article>', content_end)
@@ -188,27 +158,13 @@ class SetPages(object):
         return html
 
     def _index_content(self) -> None:
-        card = """
-            <a class="text-decoration-none" href="#link">
-             <div class="row m-4 p-0 position-relative text-body d-flex {}">
-              <div class="col-md-4 m-0 p-0">
-               <img src="#img_src" height="100" class="{}" alt="">
-              </div>
-              <div class="col-md-8 m-0 p-0 d-flex align-items-center" {}>
-               <h4 class="m-0 ms-1 p-1 text-uppercase">#title</h4>
-              </div>
-             </div>
-            </a>
-            """.replace(' '*10, '').format(
-                'align-items-center shadow card-index '
-                'border border-secondary border-opacity-25',
-                'card-img object-fit-cover',
-                'style="min-height:70px;"')
+        with open(self._html_path/'card.html', 'r') as f:
+            card = f.read()
 
         for lang in self._langs:
             content = ''
             with open(self._site_path/lang/'index.html', 'r') as f:
-                top, end = f.read().split('<!-- CONTENT -->')
+                start, end = f.read().split('<!-- CONTENT -->')
 
             for inode in os.listdir(self._docs_path/lang):
                 if os.path.isfile(self._docs_path/lang/inode):
@@ -217,7 +173,7 @@ class SetPages(object):
 
                     name = inode.replace('.docx', '.html')
                     html = HTMLRender(DocxParser(self._docs_path/lang/inode))
-                    html = self._html_formatted_content(html, top, end)
+                    html = self._html_formatted_content(html, start, end)
                     html.save(self._site_path/lang/name)
 
                     if not html.cover_src: html.cover_src = self._blank_img
@@ -229,13 +185,13 @@ class SetPages(object):
                     self._index_content_for_categs(lang, inode, card)
 
             with open(self._site_path/lang/'index.html', 'w+') as f:
-                f.write(f'{top}{content}{end}')
+                f.write(f'{start}{content}{end}')
 
     def _index_content_for_categs(
             self, lang: str, inode: str, card: str) -> None:
         sub_content = ''
         with open(self._site_path/lang/inode/'index.html', 'r') as f:
-            top, end = f.read().split('<!-- CONTENT -->')
+            start, end = f.read().split('<!-- CONTENT -->')
 
         for item in os.listdir(self._docs_path/lang/inode):
             if os.path.isdir(self._docs_path/lang/inode/item): continue
@@ -244,7 +200,7 @@ class SetPages(object):
             
             name = item.replace('.docx', '.html')
             html = HTMLRender(DocxParser(self._docs_path/lang/inode/item))
-            html = self._html_formatted_content(html, top, end)
+            html = self._html_formatted_content(html, start, end)
             html.save(self._site_path/lang/inode/name)
 
             if not html.cover_src: html.cover_src = self._blank_img
@@ -254,7 +210,7 @@ class SetPages(object):
                 '#img_src', html.cover_src)
 
         with open(self._site_path/lang/inode/'index.html', 'w') as f:
-            f.write(f'{top}{sub_content}{end}')
+            f.write(f'{start}{sub_content}{end}')
 
     def _langs_code(self) -> list:
         langs = []
@@ -330,33 +286,17 @@ class SetPages(object):
                         file_.write(n_html)
 
     def _nav_langs(self) -> None:
-        tag_li = """
-            <li>
-             <a class="{}" onclick="changeLang('#lang')" href="{}">
-              <img {} src="{}" onerror="{}; this.src='{}';" width="20" />
-              #lang
-             </a>
-            </li>
-            <div class="text-body opacity-25 m-0 p-0">
-             <hr class="m-1 p-0">
-            </div>
-            """.replace(' '*12, ' '*9).format(
-                'dropdown-item m-0 p-0',
-                '../#lang/index.html', 'class="m-1"',
-                'https://hatscripts.github.io/circle-flags/flags/#icon.svg',
-                'this.onerror=null',
-                'https://hatscripts.github.io/circle-flags/flags/xx.svg')
+        with open(self._html_path/'langs.html', 'r') as f:
+            lang_btn, lang_item = f.read().split('<!-- / -->')
+            lang_btn = lang_btn.replace('\n', '').strip()
 
         langs = ''
         for lang in self._langs:
             icon = lang.lower().split('-')[1] if '-' in lang else lang.lower()
-            langs += tag_li.replace('#lang', lang).replace('#icon', icon)
+            langs += lang_item.replace('#lang', lang).replace('#icon', icon)
 
         if len(self._langs) == 1:
-            self._html_top = self._html_top.replace(
-                '<a class="nav-link dropdown-toggle" id="currentLang" '
-                'href="#" role="button" data-bs-toggle="dropdown" '
-                'aria-expanded="false"> en-US </a>', '<span></span>')
+            self._html_top = self._html_top.replace(lang_btn, '<span></span>')
 
         self._html_top = self._html_top.replace(
             '<!-- LANGS -->', langs).replace(
