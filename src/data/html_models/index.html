@@ -22,14 +22,18 @@
     font-weight: <weight>;
     font-style: normal;
   }
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&display=swap');
+  .eb-garamond-<uniquifier> {
+    font-family: "EB Garamond", serif;
+    font-optical-sizing: auto;
+    font-weight: <weight>;
+    font-style: normal;
+  }
 
-  p {font-size: 13pt;}
+  p {font-size: 15pt;}
 
   [data-bs-theme="light"] h2, h3, h4, h5, h6, h7, h8, h9 {color: #LightSubtitleColor;}  
   [data-bs-theme="dark"] h2, h3, h4, h5, h6, h7, h8, h9 {color: #DarkSubtitleColor;}
-
-  [data-bs-theme="light"] b {  }
-  [data-bs-theme="dark"] b {border-radius: 3px; background-color: #00000028;}
 
   [data-bs-theme="light"] .moon-svg-icon { display: none;}
   [data-bs-theme="dark"] .sun-svg-icon {display: none}
@@ -40,7 +44,7 @@
   [data-bs-theme="light"] .verse {color: #LightSubtitleColor;}
   [data-bs-theme="dark"] .verse {color: #DarkSubtitleColor;}
 
-  .modal-text {font-family: "Gelasio", sans-serif; font-size: 13pt;}
+  .modal-text {font-family: "EB Garamond", sans-serif; font-size: 13pt;}
 
   .navbar {
     font-family: "Montserrat", sans-serif;
@@ -59,7 +63,7 @@
     font-size: 22pt;
   }
   .content {
-    font-family: 'Gelasio', Georgia, serif;
+    font-family: 'EB Garamond', serif;
     font-optical-sizing: auto;
     font-weight: 400;
     font-style: normal;
@@ -118,7 +122,6 @@
     background: #FFFFFF07;
     border: 1px solid #FFFFFF10;
   }
-
  </style>
  <script>
   const savedTheme = localStorage.getItem('page_theme') || 'light';
