@@ -38,7 +38,7 @@ GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
 MODAL = """
   <!-- Modal #ID -->
-  <div class="modal fade " id="modal#ID" tabindex="-1" aria-labelledby=*
+  <div class="modal fade modal-text" id="modal#ID" tabindex="-1" aria-labelledby=*
 "#idLabel" aria-hidden="true" data-bs-theme="read">
    <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
@@ -168,14 +168,8 @@ class HTMLRender(object):
         
         details = re.findall(r'<p>&gt;[^&]+&lt;</p>', text)
         if details:
-            is_first = True
-            op = ''
-
             for detail in details:
-                op = ''
-                if is_first: op = '_OPEN'
-                is_first = False
-
+                open_ = ''
                 summary = content = ''
                 header = re.findall(r'<p>&gt;[^<]+</p>', detail)
                 if header:
@@ -184,17 +178,29 @@ class HTMLRender(object):
 
                     summary = header[0].replace('<p>', '').replace('</p>', '')
                     summary = summary.replace('&gt;', '').replace('&lt;', '')
+                    if summary.strip().startswith('*'):
+                        open_ = '_OPEN'
+                        summary = summary.strip().strip('*').strip()
                 
                 text = text.replace(
                     detail,
-                    f'!DETAILS{op}!SUMMARY{summary}SUMMARY!{content}DETAILS!')
+                    f'!DETAIL{open_}!SUMMARY{summary}SUMMARY!{content}DETAIL!')
+
+        verses = re.findall(r'v\d+ ', text)
+        if verses:
+            for verse in verses:
+                text = text.replace(verse, f'!VERSE{verse[1:]}VERSE!')
 
         text = markdown(text).replace(
-            '!DETAILS_OPEN', f'\n<details open>\n').replace(
-            '!DETAILS', f'\n<details>\n').replace(
-            'DETAILS!', '\n</details>\n').replace(
+            '!DETAIL_OPEN', f'\n<details open>\n').replace(
+            '!DETAIL', f'\n<details>\n').replace(
+            'DETAIL!', '\n</details>\n').replace(
             '!SUMMARY', '\n<summary>').replace(
-            'SUMMARY!', '</summary>\n')
+            'SUMMARY!', '</summary>\n').replace(
+            '!VERSE', '<small class="verse">\n').replace(
+            'VERSE!', '</small>')
+
+
 
         return text
 
