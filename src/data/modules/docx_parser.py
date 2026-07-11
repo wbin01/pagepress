@@ -117,12 +117,15 @@ class DocxParser(object):
     def _set_comments_parse(self) -> list:
         comments_parse = []
         # Comments modal
-        with ZipFile(self._path) as docx:  # docx.namelist()
-            comments = etree.parse(docx.open('word/comments.xml'))
+        try:
+            with ZipFile(self._path) as docx:  # docx.namelist()
+                comments = etree.parse(docx.open('word/comments.xml'))
+        except:
+            return comments_parse
 
         comments = etree.tostring(
             comments, encoding='unicode', pretty_print=True)
-        if not comments: return
+        if not comments: return comments_parse
 
         for xml in comments.split('</w:comments>')[0].split('</w:comment>'):
             xml = re.sub(r'<w:comments [^>]+>', '<w:comments>', xml)
@@ -301,6 +304,9 @@ class DocxParser(object):
 
 
 if __name__ == '__main__':
+    from pprint import pprint
     parser = DocxParser('#')
     # print(parser)
-    parser.print(False, True)
+    # parser.print(False, False)
+
+    pprint(parser._doc_parse)

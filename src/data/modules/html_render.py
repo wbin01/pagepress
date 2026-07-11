@@ -200,8 +200,6 @@ class HTMLRender(object):
             '!VERSE', '<small class="verse">\n').replace(
             'VERSE!', '</small>')
 
-
-
         return text
 
     def save(self, path: str = '', html: str = None) -> None:
@@ -312,9 +310,12 @@ class HTMLRender(object):
         for tag in run['tags']:
             if tag['tag'] == 'comment':
                 text += (
-                    '<a type="button" class="ref_button text-decoration-none '
+                    '<a type="button" class="ref text-decoration-none '
                     'd-print-none" data-bs-toggle="modal" ')
                 is_comment = True
+
+            elif tag['tag'] == 'a':
+                text += '<a class="link"'
 
             elif tag['tag'] == 'bg':
                 text += '<span class="bg"'

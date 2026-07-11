@@ -15,13 +15,6 @@
     font-weight: <weight>;
     font-style: normal;
   }
-  @import url('https://fonts.googleapis.com/css2?family=Gelasio:ital,wght@0,400..700;1,400..700&display=swap');
-  .gelasio-<uniquifier> {
-    font-family: "Gelasio", serif;
-    font-optical-sizing: auto;
-    font-weight: <weight>;
-    font-style: normal;
-  }
   @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&display=swap');
   .eb-garamond-<uniquifier> {
     font-family: "EB Garamond", serif;
@@ -34,6 +27,60 @@
 
   [data-bs-theme="light"] h2, h3, h4, h5, h6, h7, h8, h9 {color: #LightSubtitleColor;}  
   [data-bs-theme="dark"] h2, h3, h4, h5, h6, h7, h8, h9 {color: #DarkSubtitleColor;}
+
+  [data-bs-theme="light"] .link {color: #1074aa;}  
+  [data-bs-theme="dark"] .link {color: #3F85C2;}
+
+  [data-bs-theme="light"] .link, .link:link, .link:active, .link:visited {
+    text-decoration: none;
+    padding: 0px 2px 0px 2px;
+    box-shadow: inset 0 -1px 0 -1px #1074aa;
+    border-radius: 3px;
+    transition: box-shadow .15s ease-in-out;
+  }
+  [data-bs-theme="dark"] .link, .link:link, .link:active, .link:visited {
+    text-decoration: none;
+    padding: 0px 2px 0px 2px;
+    box-shadow: inset 0 -1px 0 -1px #194C8B;
+    border-radius: 3px;
+    transition: box-shadow .15s ease-in-out;
+  }
+  [data-bs-theme="light"] .link:hover {
+      text-decoration: none;
+      color: white;
+      box-shadow: inset 0 -40px 0 -1px #2773a5;
+  }
+  [data-bs-theme="dark"] .link:hover {
+      text-decoration: none;
+      color: white;
+      box-shadow: inset 0 -40px 0 -1px #204267;
+  }
+  .ref, .ref:link, .ref:active, .ref:visited {
+      text-decoration: none;
+      text-decoration-color: rgba(44, 109, 188, 1.0);
+      color: #3F85C2;
+      transition: transform .12s ease, opacity .12s ease;
+      box-shadow: none;
+      /*display: inline-block;
+      position: relative;*/
+  }
+  .ref:hover {
+      text-decoration: none;
+      color: #4C9FE8;
+      box-shadow: none;
+      /*transform: scale(1.1);*/
+  }
+  .inverted-link a, .inverted-link a:link, .inverted-link a:active, .inverted-link a:visited {
+      text-decoration: none;
+      padding: 1px 2px 1px 2px;
+      color: white;
+      box-shadow: inset 0 -3px 0 -1px white;
+      transition: box-shadow .15s ease-in-out;
+  }
+  .inverted-link a:hover {
+      color: black;
+      box-shadow: inset 0 -40px 0 -1px white;
+  }
 
   [data-bs-theme="light"] .moon-svg-icon { display: none;}
   [data-bs-theme="dark"] .sun-svg-icon {display: none}
