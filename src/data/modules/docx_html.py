@@ -105,12 +105,26 @@ class Line(object):
 
         runs = xml.replace(self._xml, '').split('</w:r>')
         for run in runs:
-            self._runs.append(Run(run, self._parent))
+            run = Run(run, self._parent)
+            if self._run_is_valid(run): self._runs.append(run)
 
     def _set_properties(self) -> None:
         if '<w:jc w:val=' in self._xml:
             align = re.findall(r'<w:jc w:val=\"([^\"]*)\"',self._xml,re.DOTALL)
             if align: self._styles['align'] = align[0]
+
+    def _run_is_valid(self, run) -> bool:
+        conditions = [
+            run._type == 'Text',
+            not run._text,
+            not run._properties,
+            not run._tags,
+            not run._meta]
+
+        if all(conditions):
+            return False
+        return True
+
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(xml)'
@@ -211,18 +225,22 @@ if __name__ == '__main__':
     parser = DocxParse('~/doc.docx')
     # print(parser)
     for line in parser._parse_document:
-        # pprint(line._type)
-        # pprint(line._properties)
-
+        print('type: ', end='')
+        pprint(line._type)
+        print('properties: ', end='')
+        pprint(line._properties)
         for c in line._runs:
-            if c._type == 'Image':
-                # pprint(c._type)
-                pprint(c._text)
-                pprint(c._properties)
-                pprint(c._tags)
-                pprint(c._meta)
-                # pprint(c._xml)
-
-                print('---')
-
-        # print('===')
+            print('---')
+            print('type: ', end='')
+            pprint(c._type)
+            print('text: ', end='')
+            pprint(c._text)
+            print('properties: ', end='')
+            pprint(c._properties)
+            print('tags: ', end='')
+            pprint(c._tags)
+            print('meta: ', end='')
+            pprint(c._meta)
+            # print('xml: ', end='')
+            # pprint(c._xml)
+        print('===')
