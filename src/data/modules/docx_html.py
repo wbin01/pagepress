@@ -8,7 +8,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 
-class DocxHTML(object):
+class DocxParse(object):
     def __init__(self, path: str) -> None:
         self._path = Path(os.path.expanduser(path)).as_posix()
 
@@ -63,44 +63,21 @@ class DocxHTML(object):
             xml = etree.tostring(xml, encoding='unicode', pretty_print=True)
             line = re.sub(r'<w:p\b[^>]*>', '<w:p>', xml, count=1)
 
-            lines.append(Line(line, self._styles, self._rels))
+            lines.append(Line(line, self))
 
         return lines
 
-    def _get_parse_rels(self) -> list:
-        if not self._xml_rels: return []
-
-        parse = []
-        for xml in self._xml_rels.xpath(
-                '//r:Relationship', namespaces=self._name_space_rels):
-            # # Imgage ID
-            # if xml.get('Id') == parse['meta']['id']:
-            #     parse['meta']['url'] = xml.get('Target')
-            pass
-
-        return parse
-
-    def _get_parse_styles(self) -> list:
-        if not self._xml_styles: return []
-
-        parse = []
-        for xml in self._xml_styles.xpath(
-                '//w:style', namespaces=self._name_space_doc):
-            xml = etree.tostring(xml, encoding='unicode',pretty_print=True)
-            xml_style = re.sub(
-                r'<w:style.+w:styleId=\"', '<w:style w:styleId="', xml,count=1)
-            pass
-
-        return parse
-
 
 class Line(object):
-    def __init__(self, xml: str, xml_styles: list, xml_rels: list) -> None:
+    def __init__(self, xml: str, parent: DocxParse) -> None:
         self._xml = xml
-        self._xml_styles = xml_styles
-        self._xml_rels = xml_rels
+        self._parent = parent
 
-        self._type = 'paragraph'
+        self._xml_styles = self._parent._styles
+        self._xml_rels = self._parent._rels
+        self._path = self._parent._path
+
+        self._type = 'Paragraph'
         self._properties = {}
         self._styles = {}
         self._runs = []
@@ -117,9 +94,8 @@ class Line(object):
             
             for style in self._xml_styles:
                 if re.findall(fr'<w:style w:styleId=\"{id_[0]}\">', style):
-                    _type = re.findall(
-                        r'<w:name w:val=\"([^\"]+)\"/>', style)
-                    self._type = _type[0]
+                    type_ = re.findall(r'<w:name w:val=\"([^\"]+)\"/>', style)
+                    if type_: self._type = type_[0]
 
     def _set_runs(self) -> None:
         xml = self._xml.lstrip('<w:p>').rstrip('</w:p>').strip()
@@ -129,7 +105,7 @@ class Line(object):
 
         runs = xml.replace(self._xml, '').split('</w:r>')
         for run in runs:
-            self._runs.append(Run(run, self._xml_styles, self._xml_rels))
+            self._runs.append(Run(run, self._parent))
 
     def _set_properties(self) -> None:
         if '<w:jc w:val=' in self._xml:
@@ -141,35 +117,78 @@ class Line(object):
 
 
 class Run(object):
-    def __init__(self, xml: str, xml_styles: list, xml_rels: list) -> None:
+    def __init__(self, xml: str, parent: DocxParse) -> None:
         self._xml = xml
-        self._xml_styles = xml_styles
-        self._xml_rels = xml_rels
+        self._parent = parent
 
-        self._type = 'text'
+        self._xml_styles = self._parent._styles
+        self._xml_rels = self._parent._rels
+        self._path = self._parent._path
+
+        self._img_as_base64 = False
+        self._xml_shape = ''
+
+        self._type = 'Text'
         self._text = ''
         self._properties = {}
         self._tags = []
+        self._meta = {}
 
         self._set_type()
-        self._set_content()
+        self._set_text()
+        self._set_properties()
         self._set_tags()
 
     def _set_type(self) -> None:
         if '<mc:AlternateContent>' in self._xml:
             shape = re.findall(r'<v:shape .+</v:shape>', self._xml, re.DOTALL)
             if shape:
+                self._xml_shape = shape[0]
+
                 if '<v:imagedata' in shape[0]:
-                    self._type = 'image'
+                    self._type = 'Image'
 
                 elif '<v:path ' in shape[0] and '<v:stroke ' in shape[0]:
-                    self._type = 'draw'
+                    self._type = 'Draw'
 
-    def _set_content(self) -> None:
-        if self._type == 'text':
+    def _set_text(self) -> None:
+        if self._type == 'Text':
             if '<w:t ' in self._xml:
                 txt = re.findall(r'<w:t [^>]+>(.*)</w:t>',self._xml, re.DOTALL)
                 if txt: self._text = txt[0]
+
+    def _set_properties(self) -> None:
+        if self._type == 'Image':
+            id_ = src = ext = width = height = ''
+
+            data = re.findall(r'<v:imagedata[^>]+>', self._xml, re.DOTALL)
+            if data: id_ = re.findall(r'r:id="(rId\d+)"', data[0])
+
+            if id_:
+                for rel in self._xml_rels:
+                    if rel.get('Id') == id_[0]:
+                        src = 'word/' + rel.get('Target')
+                        ext = src.split('.')[-1].lower()
+                        break
+
+            if src and self._img_as_base64:
+                with ZipFile(self._path) as f:
+                    src = base64.b64encode(f.read(src)).decode('ascii')
+                    src = f'data:image/{ext};base64,{src}'
+
+            if self._xml_shape:
+                w = re.findall(r'width:(\d+)', self._xml_shape)
+                if w: width = int(int(w[0]) * (96 / 72))
+                h = re.findall(r'height:(\d+)', self._xml_shape)
+                if h: height = int(int(h[0]) * (96 / 72))
+
+            self._properties['src'] = src
+            self._properties['width'] = width
+            self._properties['height'] = height
+            self._meta['extension'] = ext
+
+        elif self._type == 'Draw':
+            pass
 
     def _set_tags(self) -> None:
         link = re.findall(f'<w:hyperlink [^>]+>', self._xml, re.DOTALL)
@@ -189,28 +208,21 @@ class Run(object):
 if __name__ == '__main__':
     from pprint import pprint
 
-    parser = DocxHTML('~/doc.docx')
+    parser = DocxParse('~/doc.docx')
     # print(parser)
     for line in parser._parse_document:
-        pprint(line._type)
+        # pprint(line._type)
         # pprint(line._properties)
 
-        # for c in line._runs:
-        #     # print('type:')
-        #     # pprint(c._type)
+        for c in line._runs:
+            if c._type == 'Image':
+                # pprint(c._type)
+                pprint(c._text)
+                pprint(c._properties)
+                pprint(c._tags)
+                pprint(c._meta)
+                # pprint(c._xml)
 
-        #     # print('text:')
-        #     # pprint(c._text)
-            
-        #     # print('properties:')
-        #     # pprint(c._properties)
-            
-        #     # print('tags:')
-        #     # pprint(c._tags)
+                print('---')
 
-        #     print('xml:')
-        #     pprint(c._xml)
-
-        #     print('---')
-
-        print('===')
+        # print('===')
