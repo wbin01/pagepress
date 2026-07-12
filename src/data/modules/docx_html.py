@@ -230,9 +230,28 @@ class Run(object):
                 if target == 'External': target = '_blank'
                 self._tags.append({'tag': 'a', 'href': href, 'target': target})
 
+
+        if '<w:highlight w:val="' in self._xml:
+            highlight = re.findall(
+                f'<w:highlight w:val=\"([^\"]*)\"', self._xml, re.DOTALL)
+
+            if highlight[0] != 'none':
+                self._tags.append({
+                    'tag': 'span',
+                    'class': f'highlight-{highlight[0]}',
+                    'style': f'background-color: {highlight[0]};'})
+
         if '<w:b/>' in self._xml:
             self._tags.append({'tag': 'b'})
 
+        if '<w:strike/>' in self._xml:
+            self._tags.append({'tag': 's'})
+
+        if '<w:u w:val="single"/>' in self._xml:
+            self._tags.append({'tag': 'u'})
+
+        if '<w:i/>' in self._xml:
+            self._tags.append({'tag': 'i'})
 
 if __name__ == '__main__':
     from pprint import pprint
@@ -247,19 +266,18 @@ if __name__ == '__main__':
         # print('xml: ', end='')
         # pprint(line._xml)
         for c in line._runs:
-            if c._type == 'Image':
-                print('---')
-                print('type: ', end='')
-                pprint(c._type)
-                print('text: ', end='')
-                pprint(c._text)
-                print('properties: ', end='')
-                pprint(c._properties)
-                print('tags: ', end='')
-                pprint(c._tags)
-                print('meta: ', end='')
-                pprint(c._meta)
             # if c._type == 'Image':
-            #     print('xml: ', end='')
-            #     pprint(c._xml)
+            print('---')
+            print('type: ', end='')
+            pprint(c._type)
+            print('text: ', end='')
+            pprint(c._text)
+            print('properties: ', end='')
+            pprint(c._properties)
+            print('tags: ', end='')
+            pprint(c._tags)
+            print('meta: ', end='')
+            pprint(c._meta)
+            # print('xml: ', end='')
+            # pprint(c._xml)
         print('===')
