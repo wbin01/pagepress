@@ -28,7 +28,9 @@ class DocxHTML(object):
                 '//r:Relationship', namespaces=self._name_space_rels)
 
         self._styles = [
-            etree.tostring(xml, encoding='unicode',pretty_print=True)
+            re.sub(r'<w:style.+w:styleId=\"', '<w:style w:styleId="',
+                etree.tostring(xml, encoding='unicode', pretty_print=True),
+                count=1)
             for xml in self._xml_styles.xpath(
                 '//w:style', namespaces=self._name_space_doc)]
 
@@ -93,19 +95,33 @@ class DocxHTML(object):
 
 
 class Line(object):
-    def __init__(self, xml: str, styles: list, rels: list) -> None:
+    def __init__(self, xml: str, xml_styles: list, xml_rels: list) -> None:
         self._xml = xml
-        self._styles = styles
-        self._rels = rels
+        self._xml_styles = xml_styles
+        self._xml_rels = xml_rels
 
+        self._type = 'paragraph'
         self._properties = {}
         self._styles = {}
         self._runs = []
 
+        self._set_type()
         self._set_runs()
         self._set_properties()
 
-    def _set_runs(self) -> dict:
+    def _set_type(self) -> None:
+        if '<w:pStyle w:val="' in self._xml:
+            id_ = re.findall(
+                r'<w:pStyle w:val=\"(\d+)\"/>', self._xml, re.DOTALL)
+            if not id_: return
+            
+            for style in self._xml_styles:
+                if re.findall(fr'<w:style w:styleId=\"{id_[0]}\">', style):
+                    _type = re.findall(
+                        r'<w:name w:val=\"([^\"]+)\"/>', style)
+                    self._type = _type[0]
+
+    def _set_runs(self) -> None:
         xml = self._xml.lstrip('<w:p>').rstrip('</w:p>').strip()
 
         properties = re.findall(r'<w:pPr>.*</w:pPr>', xml, re.DOTALL)
@@ -113,7 +129,7 @@ class Line(object):
 
         runs = xml.replace(self._xml, '').split('</w:r>')
         for run in runs:
-            self._runs.append(Run(run, self._styles, self._rels))
+            self._runs.append(Run(run, self._xml_styles, self._xml_rels))
 
     def _set_properties(self) -> None:
         if '<w:jc w:val=' in self._xml:
@@ -125,10 +141,10 @@ class Line(object):
 
 
 class Run(object):
-    def __init__(self, xml: str, styles: list, rels: list) -> None:
+    def __init__(self, xml: str, xml_styles: list, xml_rels: list) -> None:
         self._xml = xml
-        self._styles = styles
-        self._rels = rels
+        self._xml_styles = xml_styles
+        self._xml_rels = xml_rels
 
         self._type = 'text'
         self._text = ''
@@ -176,25 +192,25 @@ if __name__ == '__main__':
     parser = DocxHTML('~/doc.docx')
     # print(parser)
     for line in parser._parse_document:
-        pprint(line._xml)
+        pprint(line._type)
         # pprint(line._properties)
 
-        for c in line._runs:
-            # print('type:')
-            # pprint(c._type)
+        # for c in line._runs:
+        #     # print('type:')
+        #     # pprint(c._type)
 
-            # print('text:')
-            # pprint(c._text)
+        #     # print('text:')
+        #     # pprint(c._text)
             
-            # print('properties:')
-            # pprint(c._properties)
+        #     # print('properties:')
+        #     # pprint(c._properties)
             
-            # print('tags:')
-            # pprint(c._tags)
+        #     # print('tags:')
+        #     # pprint(c._tags)
 
-            print('xml:')
-            pprint(c._xml)
+        #     print('xml:')
+        #     pprint(c._xml)
 
-            print('---')
+        #     print('---')
 
         print('===')
