@@ -210,10 +210,25 @@ class Run(object):
             id_ = re.findall(r'r:id=\"([^\"]+)\"', link[0], re.DOTALL)
             id_ = id_[0] if id_ else ''
 
-            src = re.findall(r'w:tooltip=\"([^\"]+)\"', link[0], re.DOTALL)
-            src = src[0] if src else ''
+            href = re.findall(r'w:tooltip=\"([^\"]+)\"', link[0], re.DOTALL)
+            href = href[0] if href else ''
 
-            self._tags.append({'tag': 'a', 'id': id_, 'src': src})
+            self._tags.append({'tag': 'a', 'href': href})
+
+        if self._type == 'Image':
+            href = target = ''
+            if '<a:hlinkClick r:id=' in self._xml:
+                id_ = re.findall(
+                    f'<a:hlinkClick r:id=\"([^\"]*)\" tooltip=\"[^\"]*\"/>',
+                    self._xml, re.DOTALL)
+                if id_:
+                    for rel in self._xml_rels:
+                        if rel.get('Id') == id_[0]:
+                            href = rel.get('Target')
+                            target = rel.get('TargetMode')
+            if href:
+                if target == 'External': target = '_blank'
+                self._tags.append({'tag': 'a', 'href': href, 'target': target})
 
         if '<w:b/>' in self._xml:
             self._tags.append({'tag': 'b'})
@@ -225,22 +240,26 @@ if __name__ == '__main__':
     parser = DocxParse('~/doc.docx')
     # print(parser)
     for line in parser._parse_document:
-        print('type: ', end='')
-        pprint(line._type)
-        print('properties: ', end='')
-        pprint(line._properties)
+        # print('type: ', end='')
+        # pprint(line._type)
+        # print('properties: ', end='')
+        # pprint(line._properties)
+        # print('xml: ', end='')
+        # pprint(line._xml)
         for c in line._runs:
-            print('---')
-            print('type: ', end='')
-            pprint(c._type)
-            print('text: ', end='')
-            pprint(c._text)
-            print('properties: ', end='')
-            pprint(c._properties)
-            print('tags: ', end='')
-            pprint(c._tags)
-            print('meta: ', end='')
-            pprint(c._meta)
-            # print('xml: ', end='')
-            # pprint(c._xml)
+            if c._type == 'Image':
+                print('---')
+                print('type: ', end='')
+                pprint(c._type)
+                print('text: ', end='')
+                pprint(c._text)
+                print('properties: ', end='')
+                pprint(c._properties)
+                print('tags: ', end='')
+                pprint(c._tags)
+                print('meta: ', end='')
+                pprint(c._meta)
+            # if c._type == 'Image':
+            #     print('xml: ', end='')
+            #     pprint(c._xml)
         print('===')
