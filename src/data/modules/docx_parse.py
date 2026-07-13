@@ -14,7 +14,9 @@ NS_REL = {'r': 'http://schemas.openxmlformats.org/package/2006/relationships'}
 
 
 class DocxParse(object):
+    """..."""
     def __init__(self, path: str) -> None:
+        """..."""
         self._path = Path(os.path.expanduser(path)).as_posix()
         self._xml_rels = self._get_rels()
         self._xml_styles = self._get_styles()
@@ -23,6 +25,16 @@ class DocxParse(object):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}("{self._path}")'
+
+    @property
+    def path(self) -> str:
+        """..."""
+        return self._path
+
+    @property
+    def parse(self) -> dict:
+        """..."""
+        return {'document': self._document, 'comments': self._comments}
 
     def _get_comments(self) -> list:
         try:
@@ -101,7 +113,6 @@ if __name__ == '__main__':
         # print('xml: ', end='')
         # pprint(line._xml)
         for c in line._runs:
-            # if c._type == 'Image':
             print('---')
             print('type: ', end='')
             pprint(c._type)
@@ -113,7 +124,6 @@ if __name__ == '__main__':
             pprint(c._tags)
             print('meta: ', end='')
             pprint(c._meta)
-            if c._text == '+':
-                print('xml: ', end='')
-                pprint(c._xml)
+            # print('xml: ', end='')
+            # pprint(c._xml)
         print('===')

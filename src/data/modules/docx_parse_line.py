@@ -5,7 +5,9 @@ from docx_parse_run import Run
 
 
 class Line(object):
+    """..."""
     def __init__(self, xml: str, parent: DocxParse) -> None:
+        """..."""
         self._xml = xml
         self._parent = parent
 
@@ -20,6 +22,26 @@ class Line(object):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(xml)'
+
+    @property
+    def properties(self) -> dict:
+        """..."""
+        return self._properties
+
+    @property
+    def runs(self) -> list:
+        """..."""
+        return self._runs
+
+    @property
+    def styles(self) -> dict:
+        """..."""
+        return self._styles
+
+    @property
+    def type(self) -> str:
+        """..."""
+        return self._type
 
     def _set_type(self) -> str:
         if '<w:pStyle w:val="' in self._xml:

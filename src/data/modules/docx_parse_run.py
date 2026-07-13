@@ -6,7 +6,9 @@ from zipfile import ZipFile
 
 
 class Run(object):
+    """..."""
     def __init__(self, xml: str, parent: DocxParse) -> None:
+        """..."""
         self._xml = xml
         self._parent = parent
 
@@ -25,6 +27,26 @@ class Run(object):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(xml)'
+
+    @property
+    def properties(self) -> dict:
+        """..."""
+        return self._properties
+
+    @property
+    def tags(self) -> list:
+        """..."""
+        return self._tags
+
+    @property
+    def text(self) -> str:
+        """..."""
+        return self._text
+
+    @property
+    def type(self) -> str:
+        """..."""
+        return self._type
         
     def _set_type(self) -> str:
         if '<mc:AlternateContent>' in self._xml:
@@ -82,7 +104,7 @@ class Run(object):
 
         return properties
 
-    def _set_tags(self) -> None:
+    def _set_tags(self) -> list:
         tags = []
         # link
         link = re.findall(f'<w:hyperlink [^>]+>', self._xml, re.DOTALL)
