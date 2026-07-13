@@ -2,7 +2,7 @@
 from docx_parse import DocxParse
 
 
-TOP = """
+HTML_START = """
 <!DOCTYPE html>
 <html>
  <head>
@@ -23,7 +23,7 @@ GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
  <body>
 """
 
-MODAL = """
+MODAL_START = """
   <!-- Modal #ID -->
   <div class="modal fade modal-text" id="modal#MODAL_ID" tabindex="-1" *
 aria-labelledby="#idLabel" aria-hidden="true" data-bs-theme="read">
@@ -31,7 +31,9 @@ aria-labelledby="#idLabel" aria-hidden="true" data-bs-theme="read">
     <div class="modal-content">
      <div class="modal-body p-0 m-0">
       <div class="px-2 mt-2">
-       #MODAL_CONTENT
+"""
+
+MODAL_END = """
       </div>
       <div class="p-0 m-1">
        <div class="d-grid gap-2 d-flex justify-content-end">
@@ -47,7 +49,7 @@ border-0" data-bs-dismiss="modal" aria-label="Close">
   </div>
 """
 
-END = """
+HTML_END = """
   <footer></footer>
  </body>
 </html>
@@ -66,15 +68,18 @@ class DocxHTML(object):
         self._modals = None
         self._html = None
 
+        self._map = self._get_map()
         self._set_html()
 
     @property
     def html(self) -> str:
         """..."""
-        html = TOP
-        html += END
-
-        return html.replace('*\n', '').strip()
+        html = HTML_START
+        html += self._body
+        html += HTML_END
+        html = html.replace('*\n', '').strip()
+        print(html)
+        return html
 
     def save(self, path: str = '', html: str = None) -> None:
         """..."""
@@ -88,11 +93,56 @@ class DocxHTML(object):
             f.write(html)
 
     def _set_html(self) -> None:
+        self._body = ''
+
         for line in self._parser.parse['document']:
-            print(line)
-            for run in line.runs:
-                print('    ', run)
+            tag_start = '<' + self._map[line.type]
+            if line.classes:
+                tag_start += f' class="{' '.join(line.classes)}"'
+
+            if line.properties:
+                for key, value in line.properties.items():
+                    tag_start += f' {key}="{value}"'
+            
+            if line.styles:
+                tag_start += ' style="'
+                for key, value in line.styles.items():
+                    tag_start += f'{key}: {value}; '
+                tag_start += '"'
+
+            tag_start += '>'
+
+            content = ''
+            # for run in line.runs:
+            #     print('    ', run)
+
+            tag_end = f'</{self._map[line.type]}>\n'
+
+            tag = tag_start + content + tag_end
+            self._body += tag.replace(' "', '"')
+
+        for line in self._parser.parse['comments']:
+            tag_start = MODAL_START
+
+            content = ''
+            # for run in line.runs:
+            #     print('    ', run)
+
+            if line.type == 'Comment': tag_end = MODAL_END
+
+            tag = tag_start + content + tag_end
+            self._body += tag.replace(' "', '"')
+
+    @staticmethod
+    def _get_map():
+        tags_map = {f'Heading {x}': f'h{x}' for x in range(1, 10)}
+        tags_map.update({
+            'Quote': 'blockquote', 'Paragraph': 'p', 'Title': 'h1',
+            'Comment': 'div',
+            })
+        return tags_map
 
 if __name__ == '__main__':
     html = DocxHTML('~/doc.docx')
-    # html.save()
+    html.html
+    html.save()

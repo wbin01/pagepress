@@ -18,10 +18,16 @@ class Line(object):
         self._properties = {}
         self._type = self._set_type()
         self._runs = self._set_runs()
+        self._classes = self._set_classes()
         self._styles = self._set_styles()
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(xml)'
+
+    @property
+    def classes(self) -> list:
+        """..."""
+        return self._classes
 
     @property
     def properties(self) -> dict:
@@ -43,21 +49,15 @@ class Line(object):
         """..."""
         return self._type
 
-    def _set_type(self) -> str:
-        if '<w:pStyle w:val="' in self._xml:
-            id_ = re.findall(
-                r'<w:pStyle w:val=\"(\d+)\"/>', self._xml, re.DOTALL)
-            if not id_: return
-            
-            for style in self._xml_styles:
-                if re.findall(fr'<w:style w:styleId=\"{id_[0]}\">', style):
-                    type_ = re.findall(r'<w:name w:val=\"([^\"]+)\"/>', style)
-                    if type_: return type_[0]
+    def _set_classes(self) -> list:
+        classes = []
+        if self._type == 'Title':
+            classes.append('post-tittle')
 
-        elif '<w:comment w:id=' in self._xml:
-            return 'Comment'
+        elif self._type == 'Comment':
+            classes.append('comment-modal')
 
-        return 'Paragraph'
+        return classes
 
     def _set_runs(self) -> list:
         runs = []
@@ -90,5 +90,21 @@ class Line(object):
         styles = {}
         if '<w:jc w:val=' in self._xml:
             align = re.findall(r'<w:jc w:val=\"([^\"]*)\"',self._xml,re.DOTALL)
-            if align: styles['align'] = align[0]
+            if align: styles['text-align'] = align[0]
         return styles
+
+    def _set_type(self) -> str:
+        if '<w:pStyle w:val="' in self._xml:
+            id_ = re.findall(
+                r'<w:pStyle w:val=\"(\d+)\"/>', self._xml, re.DOTALL)
+            if not id_: return
+            
+            for style in self._xml_styles:
+                if re.findall(fr'<w:style w:styleId=\"{id_[0]}\">', style):
+                    type_ = re.findall(r'<w:name w:val=\"([^\"]+)\"/>', style)
+                    if type_: return type_[0]
+
+        elif '<w:comment w:id=' in self._xml:
+            return 'Comment'
+
+        return 'Paragraph'
