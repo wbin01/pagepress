@@ -8,33 +8,15 @@ from pathlib import Path
 from zipfile import ZipFile
 
 
+NS_DOC = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
+NS_REL = {'r': 'http://schemas.openxmlformats.org/package/2006/relationships'}
+
+
 class DocxParse(object):
     def __init__(self, path: str) -> None:
         self._path = Path(os.path.expanduser(path)).as_posix()
-
-        with ZipFile(self._path) as f:  # f.read(url).decode('utf-8')
-            self._xml_comments = etree.parse(f.open('word/comments.xml'))
-            self._xml_document = etree.parse(f.open('word/document.xml'))
-
-            xml_rels = etree.parse(f.open('word/_rels/document.xml.rels'))
-            xml_styles = etree.parse(f.open('word/styles.xml'))
-
-        self._name_space_doc = {'w':
-            'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
-        
-        self._name_space_rels = {'r':
-            'http://schemas.openxmlformats.org/package/2006/relationships'}
-        
-        self._xml_rels = xml_rels.xpath(
-            '//r:Relationship', namespaces=self._name_space_rels)
-
-        self._xml_styles = [
-            re.sub(r'<w:style.+w:styleId=\"', '<w:style w:styleId="',
-                etree.tostring(xml, encoding='unicode', pretty_print=True),
-                count=1)
-            for xml in xml_styles.xpath(
-                '//w:style', namespaces=self._name_space_doc)]
-
+        self._xml_rels = self._get_rels()
+        self._xml_styles = self._get_styles()
         self._comments = self._get_comments()
         self._document = self._get_document()
 
@@ -42,30 +24,65 @@ class DocxParse(object):
         return f'{self.__class__.__name__}("{self._path}")'
 
     def _get_comments(self) -> list:
-        if not self._xml_comments: return []
+        try:
+            with ZipFile(self._path) as f:  # docx.namelist()
+                comments = etree.parse(f.open('word/comments.xml'))
+        except:
+            return parse
 
-        comments = etree.tostring(
-            self._xml_comments, encoding='unicode', pretty_print=True)
         if not comments: return []
 
-        parse = []
-        for xml in comments.split('</w:comments>')[0].split('</w:comment>'):
-            xml = re.sub(r'<w:comments [^>]+>', '<w:comments>', xml)
-            pass
-
-        return parse
-
-    def _get_document(self) -> list:
-        if not self._xml_document: return []
+        comments = etree.tostring(
+            comments, encoding='unicode', pretty_print=True)
+        if not comments: return parse
 
         lines = []
-        for xml in self._xml_document.xpath(
-                '//w:body/w:p', namespaces=self._name_space_doc):
+        for xml in comments.split('</w:comment>'):
+            line = re.sub(r'<w:comments [^>]+>', '<w:comments>', xml)
+            lines.append(Line(line, self))
+
+        return lines
+
+    def _get_document(self) -> list:
+        try:
+            with ZipFile(self._path) as f:  # docx.namelist()
+                document = etree.parse(f.open('word/document.xml'))
+        except:
+            return parse
+
+        if not document: return []
+
+        lines = []
+        for xml in document.xpath(
+                '//w:body/w:p', namespaces=NS_DOC):
             xml = etree.tostring(xml, encoding='unicode', pretty_print=True)
             line = re.sub(r'<w:p\b[^>]*>', '<w:p>', xml, count=1)
             lines.append(Line(line, self))
 
         return lines
+
+    def _get_rels(self):
+        try:
+            with ZipFile(self._path) as f:  # f.read(url).decode('utf-8')
+                xml_rels = etree.parse(f.open('word/_rels/document.xml.rels'))
+        except:
+            return []
+        
+        return xml_rels.xpath('//r:Relationship', namespaces=NS_REL)
+
+    def _get_styles(self):
+        parse = []
+        try:
+            with ZipFile(self._path) as f:  # f.read(url).decode('utf-8')
+                xml_styles = etree.parse(f.open('word/styles.xml'))
+        except:
+            return parse
+
+        for xml in xml_styles.xpath('//w:style', namespaces=NS_DOC):
+            s = etree.tostring(xml, encoding='unicode', pretty_print=True)
+            parse.append(re.sub(
+                r'<w:style.+w:styleId=\"', '<w:style w:styleId="', s, count=1))
+        return parse
 
 
 class Line(object):
@@ -77,10 +94,10 @@ class Line(object):
         self._xml_rels = self._parent._xml_rels
         self._path = self._parent._path
 
+        self._properties = {}
         self._type = self._set_type()
         self._runs = self._set_runs()
         self._styles = self._set_styles()
-        self._properties = {}
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(xml)'
@@ -95,18 +112,31 @@ class Line(object):
                 if re.findall(fr'<w:style w:styleId=\"{id_[0]}\">', style):
                     type_ = re.findall(r'<w:name w:val=\"([^\"]+)\"/>', style)
                     if type_: return type_[0]
+
+        elif '<w:comment w:id=' in self._xml:
+            return 'Comment'
+
         return 'Paragraph'
 
     def _set_runs(self) -> list:
-        xml = self._xml.lstrip('<w:p>').rstrip('</w:p>').strip()
-
-        properties = re.findall(r'<w:pPr>.*</w:pPr>', xml, re.DOTALL)
-        self._xml = properties[0] if properties else ''
-
         runs = []
-        for run in xml.replace(self._xml, '').split('</w:r>'):
-            run = Run(run, self._parent)
-            if self._run_is_valid(run): runs.append(run)
+        if self._type == 'Comment':
+            id_ = re.findall(r'<w:comment w:id="([^"]+)"', self._xml)
+            if id_:
+                self._properties['id'] = id_[0]
+
+                for xml in self._xml.split('</w:r>'):
+                    run = Run(xml, self)
+                    if self._run_is_valid(run): runs.append(run)
+        else:
+            xml = self._xml.lstrip('<w:p>').rstrip('</w:p>').strip()
+            properties = re.findall(r'<w:pPr>.*</w:pPr>', xml, re.DOTALL)
+            self._xml = properties[0] if properties else ''
+
+            for xml in xml.replace(self._xml, '').split('</w:r>'):
+                run = Run(xml, self)
+                if self._run_is_valid(run): runs.append(run)
+
         return runs
 
     def _set_styles(self) -> dict:
@@ -127,9 +157,9 @@ class Run(object):
         self._xml = xml
         self._parent = parent
 
-        self._xml_styles = self._parent._xml_styles
-        self._xml_rels = self._parent._xml_rels
-        self._path = self._parent._path
+        self._xml_styles = self._parent._parent._xml_styles
+        self._xml_rels = self._parent._parent._xml_rels
+        self._path = self._parent._parent._path
 
         self._img_as_base64 = False
         self._xml_shape = ''
@@ -159,8 +189,8 @@ class Run(object):
     def _set_text(self) -> str:
         if self._type == 'Text':
             if '<w:t ' in self._xml:
-                txt = re.findall(r'<w:t [^>]+>(.*)</w:t>',self._xml, re.DOTALL)
-                if txt: return txt[0]
+                tx = re.findall(r'<w:t [^>]+>(.*)</w:t>', self._xml, re.DOTALL)
+                if tx: return tx[0]
         return ''
 
     def _set_properties(self) -> dict:
@@ -257,7 +287,7 @@ if __name__ == '__main__':
 
     parser = DocxParse('~/doc.docx')
     # print(parser)
-    for line in parser._document:
+    for line in parser._comments:
         print('type: ', end='')
         pprint(line._type)
         print('properties: ', end='')
