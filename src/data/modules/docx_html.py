@@ -61,15 +61,13 @@ class DocxHTML(object):
     def __init__(self, path: str, img_base64: bool = False) -> None:
         """..."""
         self._parser = DocxParse(path, img_base64)
+        self._map = self._get_map()
 
         self._cover = None
         self._title = None
-        self._body = None
+        self._body = self._set_body()
         self._modals = None
         self._html = None
-
-        self._map = self._get_map()
-        self._set_html()
 
     @property
     def html(self) -> str:
@@ -95,7 +93,46 @@ class DocxHTML(object):
         with open(path, 'w') as f:
             f.write(html)
 
-    def _render_content(self, runs) -> str:
+    def _set_body(self) -> None:
+        body = ''
+        for line in self._parser.parse['document']:
+            tag_start = '  <' + self._map[line.type]
+            if line.classes:
+                tag_start += f' class="{' '.join(line.classes)}"'
+
+            if line.properties:
+                for key, value in line.properties.items():
+                    tag_start += f' {key}="{value}"'
+            
+            if line.styles:
+                tag_start += ' style="'
+                for key, value in line.styles.items():
+                    tag_start += f'{key}: {value}; '
+                tag_start += '"'
+
+            tag_start += '>'
+            content = self._set_body_runs(line.runs)
+            tag_end = f'</{self._map[line.type]}>\n'
+
+            tag = tag_start + content + tag_end
+            body += tag.replace(' "', '"')
+
+        modal = ''
+        for line in self._parser.parse['comments']:
+            tag_start = MODAL_START
+
+            content = ''
+            # for run in line.runs:
+            #     print('    ', run)
+
+            tag_end = MODAL_END
+
+            tag = tag_start + content + tag_end
+            modal += tag.replace(' "', '"')
+        
+        return body + modal
+
+    def _set_body_runs(self, runs) -> str:
         content = ''
         for run in runs:
             run_tag = ''
@@ -103,8 +140,13 @@ class DocxHTML(object):
                 run_tag += '<' + t['tag']
                 run_tag += ''.join(
                     [f' {key}="{value}"' for key, value in t.items()
-                    if key != 'tag'])
+                    if key != 'tag' and key != 'id'])
                 run_tag += '>'
+
+                if 'comment-button' in t.values():
+                    run_tag = run_tag.replace(
+                        'comment-button',
+                        'comment-button text-decoration-none d-print-none')
 
             if run.type == 'Image':
                 src = run.properties['src']
@@ -126,45 +168,6 @@ class DocxHTML(object):
             content += run_tag
 
         return content
-
-    def _set_html(self) -> None:
-        body = ''
-        for line in self._parser.parse['document']:
-            tag_start = '<' + self._map[line.type]
-            if line.classes:
-                tag_start += f' class="{' '.join(line.classes)}"'
-
-            if line.properties:
-                for key, value in line.properties.items():
-                    tag_start += f' {key}="{value}"'
-            
-            if line.styles:
-                tag_start += ' style="'
-                for key, value in line.styles.items():
-                    tag_start += f'{key}: {value}; '
-                tag_start += '"'
-
-            tag_start += '>'
-            content = self._render_content(line.runs)
-            tag_end = f'</{self._map[line.type]}>\n'
-
-            tag = tag_start + content + tag_end
-            body += tag.replace(' "', '"')
-
-        modal = ''
-        for line in self._parser.parse['comments']:
-            tag_start = MODAL_START
-
-            content = ''
-            # for run in line.runs:
-            #     print('    ', run)
-
-            tag_end = MODAL_END
-
-            tag = tag_start + content + tag_end
-            modal += tag.replace(' "', '"')
-        
-        self._body = body + modal
 
     @staticmethod
     def _get_map():
