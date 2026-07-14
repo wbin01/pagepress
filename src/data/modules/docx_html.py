@@ -4,7 +4,7 @@ import re
 from markdown import markdown
 
 from docx_parse import DocxParse
-
+from svg_icon_to_html import SvgIconToHTML
 
 HTML_START = """
 <!DOCTYPE html>
@@ -66,6 +66,10 @@ class DocxHTML(object):
         """..."""
         self._parser = DocxParse(path, img_base64)
         self._map = self._get_map()
+
+        self._icon_close = SvgIconToHTML('close').html
+        self._icon_book = SvgIconToHTML('book').html
+        self._icon_plus_ref = SvgIconToHTML('plus-ref').html
 
         self._cover = None
         self._title = None
@@ -134,7 +138,7 @@ class DocxHTML(object):
             '!VERSE', '<small class="verse">\n').replace(
             'VERSE!', '</small>')
 
-        return text
+        return f'\n{text}\n'
 
     def _set_body(self) -> str:
         body = ''
@@ -165,16 +169,23 @@ class DocxHTML(object):
     def _set_body_runs(self, runs) -> str:
         content = ''
         for run in runs:
-            run_tag = ''
+            text = run.text
+
+            tag_start = ''
             for t in run.tags:
-                run_tag += '<' + t['tag']
-                run_tag += ''.join(
+                tag_start += '<' + t['tag']
+                tag_start += ''.join(
                     [f' {key}="{value}"' for key, value in t.items()
                     if key != 'tag'])
-                run_tag += '>'
+                tag_start += '>'
 
                 if 'comment-button' in t.values():
-                    run_tag = run_tag.replace(
+                    if run.text == 'book':
+                        text = self._icon_book
+                    elif run.text == '+':
+                        text = self._icon_plus_ref
+
+                    tag_start = tag_start.replace(
                         'comment-button',
                         'comment-button text-decoration-none d-print-none')
 
@@ -184,18 +195,18 @@ class DocxHTML(object):
                 height = run.properties['height']
 
                 img = f'<img width="{width}" height="{height}" src="{src}">'
-                run_tag += f'<figure>{img}</figure>'
+                tag_start += f'<figure>{img}</figure>'
 
             elif run.type == 'Draw':
                 pass
 
-            content += run_tag + run.text
+            content += tag_start + text
 
-            run_tag = ''
+            tag_end = ''
             for t in run.tags:
-                run_tag += f'</{t['tag']}>'
+                tag_end += f'</{t['tag']}>'
 
-            content += run_tag
+            content += tag_end
 
         return content
 
@@ -210,9 +221,9 @@ class DocxHTML(object):
             text = ''
             for run in line.runs:
                 text += f'{run.text}\n\n'
-            text = self._markdown_to_html(text)
+            text = self._markdown_to_html(text).replace('\n', '\n       ')
 
-            tag_end = MODAL_END
+            tag_end = MODAL_END.replace('#ICON_CLOSE', self._icon_close)
 
             tag = tag_start + text + tag_end
             modals += tag.replace(' "', '"')
