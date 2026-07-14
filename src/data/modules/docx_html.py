@@ -240,13 +240,13 @@ class DocxHTML(object):
 
             tag = tag_start + content + tag_end
 
-            if line.type == 'Title' and not self._title:
-                self._title, tag = tag, ''
-
             if len(line.runs) == 1 and line.runs[0].type == 'Image':
                 # tag = '  ' + content
-                if not self._cover:
+                if not self._title and not self._cover:
                     self._cover, tag = content, ''
+
+            if line.type == 'Title' and not self._title:
+                self._title, tag = tag, ''
 
             body += tag.replace(' "', '"')
 
