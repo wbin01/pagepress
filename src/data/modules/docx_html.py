@@ -231,7 +231,7 @@ class DocxHTML(object):
 
             text = ''
             for run in line.runs:
-                text += f'{run.text}\n\n'
+                text += f'<p>{run.text}</p>'
             text = self._markdown_to_html(text).replace('\n', '\n       ')
 
             tag_end = MODAL_END.replace('#ICON_CLOSE', self._icon_close)
