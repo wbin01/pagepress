@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import re
 
-from docx_parse_run import Run
+from .docx_parse_run import Run
 
 
 class Line(object):

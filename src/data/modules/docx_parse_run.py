@@ -23,10 +23,16 @@ class Run(object):
         self._type = self._set_type()
         self._text = self._set_text()
         self._properties = self._set_properties()
+        self._classes = self._set_classes()
         self._tags = self._set_tags()
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(xml)'
+
+    @property
+    def classes(self) -> list:
+        """..."""
+        return self._classes
 
     @property
     def properties(self) -> dict:
@@ -67,6 +73,13 @@ class Run(object):
                 tx = re.findall(r'<w:t [^>]+>(.*)</w:t>', self._xml, re.DOTALL)
                 if tx: return tx[0]
         return ''
+
+    def _set_classes(self) -> list:
+        classes = []
+        if self._type == 'Image':
+            classes.append('image')
+
+        return classes
 
     def _set_properties(self) -> dict:
         properties = {}
@@ -115,7 +128,7 @@ class Run(object):
             href = re.findall(r'w:tooltip=\"([^\"]+)\"', link[0], re.DOTALL)
             href = href[0] if href else ''
 
-            tags.append({'tag': 'a', 'href': href})
+            tags.append({'tag': 'a', 'href': href, 'class': 'link'})
 
         if self._type == 'Image':
             href = target = ''
@@ -139,9 +152,7 @@ class Run(object):
 
             if highlight[0] != 'none':
                 tags.append({
-                    'tag': 'span',
-                    'class': f'highlight-{highlight[0]}',
-                    'style': f'background-color: {highlight[0]};'})
+                    'tag': 'span', 'class': f'highlight-{highlight[0]}'})
 
         # Comment
         if '<w:commentRangeStart ' in self._xml:

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 import re
 
+from pathlib import Path
 from markdown import markdown
 
-from docx_parse import DocxParse
-from svg_icon_to_html import SvgIconToHTML
+from .docx_parse import DocxParse
+from .svg_icon_to_html import SvgIconToHTML
 
 HTML_START = """
 <!DOCTYPE html>
@@ -62,7 +63,7 @@ HTML_END = """
 
 class DocxHTML(object):
     """..."""
-    def __init__(self, path: str, img_base64: bool = False) -> None:
+    def __init__(self, path: str, img_base64: bool = True) -> None:
         """..."""
         self._parser = DocxParse(path, img_base64)
         self._map = self._get_map()
@@ -71,24 +72,97 @@ class DocxHTML(object):
         self._icon_book = SvgIconToHTML('book').html
         self._icon_plus_ref = SvgIconToHTML('plus-ref').html
 
-        self._cover = None
-        self._title = None
+        self._start = HTML_START
+        self._end = HTML_END
+        self._cover = ''
+        self._cover_src = ''
+        self._title = ''
+        self._title_text = ''
         self._body = self._set_body()
         self._modals = self._set_modals()
-        self._html = None
+        self._html = ''
+
+    @property
+    def body(self) -> str:
+        """..."""
+        return self._body
+
+    @body.setter
+    def body(self, body: str) -> None:
+        """..."""
+        self._body = body
+
+    @property
+    def cover(self) -> str:
+        """..."""
+        return self._cover
+
+    @cover.setter
+    def cover(self, cover: str) -> None:
+        """..."""
+        self._cover = cover
+
+    @property
+    def cover_src(self) -> str:
+        """..."""
+        return self._cover_src
+
+    @cover_src.setter
+    def cover_src(self, cover_src: str) -> None:
+        """..."""
+        self._cover_src = cover_src
+
+    @property
+    def end(self) -> str: 
+        return self._end
+
+    @end.setter
+    def end(self, end: str) -> None:
+        self._end = end
 
     @property
     def html(self) -> str:
         """..."""
-        html = HTML_START
+        html = self._start
+        html += self._cover
+        html += self._title
         html += self._body
         html += self._modals
-        html += HTML_END
+        html += self._end
         self._html = html.replace('*\n', '').strip()
         return self._html
 
+    @property
+    def start(self) -> str: 
+        return self._start
+
+    @start.setter
+    def start(self, start: str) -> None:
+        self._start = start
+
+    @property
+    def title(self) -> str:
+        """..."""
+        return self._title
+
+    @title.setter
+    def title(self, title: str) -> None:
+        """..."""
+        self._title = title
+
+    @property
+    def title_text(self) -> str:
+        """..."""
+        return self._title_text
+
+    @title_text.setter
+    def title_text(self, title_text: str) -> None:
+        """..."""
+        self._title_text = title_text
+
     def save(self, path: str = '', html: str = None) -> None:
         """..."""
+        if isinstance(path, Path): path = path.as_posix()
         if not path:
             path = self._parser.path
 
@@ -96,8 +170,7 @@ class DocxHTML(object):
         html = html if html else self._html
 
         if not html:
-            if not self._html: self.html
-            html = self._html
+            if not self._html: html = self.html
 
         with open(path, 'w') as f:
             f.write(html)
@@ -129,6 +202,7 @@ class DocxHTML(object):
             for verse in verses:
                 text = text.replace(verse, f'!VERSE{verse[1:]}VERSE!')
 
+        text = text.replace('<p>', '').replace('</p>', '\n')
         text = markdown(text).replace(
             '!DETAIL_OPEN', f'\n<details open>\n').replace(
             '!DETAIL', f'\n<details>\n').replace(
@@ -141,7 +215,7 @@ class DocxHTML(object):
         return f'\n{text}\n'
 
     def _set_body(self) -> str:
-        body = ''
+        body = ' <main>\n <article>\n\n'
         for line in self._parser.parse['document']:
             tag_start = '  <' + self._map[line.type]
 
@@ -170,14 +244,25 @@ class DocxHTML(object):
             tag_end = f'</{self._map[line.type]}>\n'
 
             tag = tag_start + content + tag_end
+
+            if line.type == 'Title' and not self._title:
+                self._title, tag = tag, ''
+
+            if len(line.runs) == 1 and line.runs[0].type == 'Image':
+                tag = content
+
             body += tag.replace(' "', '"')
+
+        body += '\n </article>\n </main>\n\n <footer></footer>\n'
 
         return body
 
     def _set_body_runs(self, line) -> str:
         content = ''
+        text = ''
         for run in line.runs:
-            text = run.text
+            text += run.text
+            txt = run.text
 
             tag_start = ''
             for t in run.tags:
@@ -189,35 +274,48 @@ class DocxHTML(object):
 
                 if 'comment-button' in t.values():
                     if run.text == 'book':
-                        text = self._icon_book
+                        txt = self._icon_book
                     elif run.text == '+':
-                        text = self._icon_plus_ref
+                        txt = self._icon_plus_ref
 
                     tag_start = tag_start.replace(
                         'comment-button',
                         'comment-button text-decoration-none d-print-none')
 
-            if run.type == 'Image':
-                src = run.properties['src']
-                width = run.properties['width']
-                height = run.properties['height']
-                align = ''
-                if 'text-align' in line.styles:
-                    align = f' class="text-{line.styles["text-align"]}"'
-
-                img = f'<img width="{width}" height="{height}" src="{src}">'
-                tag_start += f'<figure{align}>{img}</figure>'
-
-            elif run.type == 'Draw':
-                pass
-
-            content += tag_start + text
+            content += tag_start + txt
 
             tag_end = ''
             for t in run.tags:
                 tag_end += f'</{t['tag']}>'
 
             content += tag_end
+
+            if run.type == 'Image':
+                src = run.properties['src']
+                width = run.properties['width']
+                height = run.properties['height']
+
+                class_ = ''
+                if run.classes: class_ = ' '.join(run.classes)
+
+                align = ''
+                if 'text-align' in line.styles:
+                    align = f' text-{line.styles["text-align"]}'
+
+                if class_ or align:
+                    class_ = f'class="{class_}{align}"'
+
+                img = f'<img width="{width}" height="{height}" src="{src}">'
+                content = f'<figure {class_}>{img}</figure>'
+
+                if not self._cover and not self._title:
+                    self._cover, self._cover_src, content = content, src, ''
+
+            elif run.type == 'Draw':
+                pass
+
+        if line.type == 'Title' and not self._title_text:
+            self._title_text = text
 
         return content
 

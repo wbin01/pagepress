@@ -7,9 +7,7 @@ import shutil
 from pathlib import Path
 
 from .conf_file import ConfFile
-from .docx_parser import DocxParser
-from .html_render import HTMLRender
-from docx_parse import DocxParse
+from .docx_html import DocxHTML
 from .svg_icon_to_html import SvgIconToHTML
 
 
@@ -136,7 +134,7 @@ class SetPages(object):
         return html.split('<!-- / -->')
 
     def _html_formatted_content(
-            self, html: HTMLRender, start: str, end: str) -> HTMLRender:
+            self, html: DocxHTML, start: str, end: str) -> DocxHTML:
 
         with open(self._html_path/'cover.html', 'r') as f:
             cover = f.read().replace('#image', self._noise_img)
@@ -148,7 +146,7 @@ class SetPages(object):
         if not html.cover:
             cover = cover_alt
             title = title_alt
-
+        # _h = html.html
         content_end = ' </div>\n  <!-- Content end-->\n </article>'
         html.start = start
         html.cover = cover.replace('#img', html.cover_src)
@@ -173,7 +171,7 @@ class SetPages(object):
                         continue
 
                     name = inode.replace('.docx', '.html')
-                    html = HTMLRender(DocxParser(self._docs_path/lang/inode))
+                    html = DocxHTML(self._docs_path/lang/inode)
                     html = self._html_formatted_content(html, start, end)
                     html.save(self._site_path/lang/name)
 
@@ -200,7 +198,7 @@ class SetPages(object):
                 continue
             
             name = item.replace('.docx', '.html')
-            html = HTMLRender(DocxParser(self._docs_path/lang/inode/item))
+            html = DocxHTML(self._docs_path/lang/inode/item)
             html = self._html_formatted_content(html, start, end)
             html.save(self._site_path/lang/inode/name)
 

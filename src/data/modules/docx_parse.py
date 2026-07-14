@@ -6,7 +6,7 @@ from lxml import etree
 from pathlib import Path
 from zipfile import ZipFile
 
-from docx_parse_line import Line
+from .docx_parse_line import Line
 
 
 NS_DOC = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
@@ -43,7 +43,7 @@ class DocxParse(object):
             with ZipFile(self._path) as f:  # docx.namelist()
                 comments = etree.parse(f.open('word/comments.xml'))
         except:
-            return parse
+            return []
 
         if not comments: return []
 
