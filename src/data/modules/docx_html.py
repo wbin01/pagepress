@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import re
+
+from markdown import markdown
+
 from docx_parse import DocxParse
 
 
@@ -94,6 +98,44 @@ class DocxHTML(object):
         with open(path, 'w') as f:
             f.write(html)
 
+    @staticmethod
+    def _markdown_to_html(text: str) -> str:
+        details = re.findall(r'<p>&gt;[^&]+&lt;</p>', text)
+        if details:
+            for detail in details:
+                open_ = ''
+                summary = content = ''
+                header = re.findall(r'<p>&gt;[^<]+</p>', detail)
+                if header:
+                    content = detail.replace(header[0], '')
+                    content = content.replace('&gt;', '').replace('&lt;', '')
+
+                    summary = header[0].replace('<p>', '').replace('</p>', '')
+                    summary = summary.replace('&gt;', '').replace('&lt;', '')
+                    if summary.strip().startswith('*'):
+                        open_ = '_OPEN'
+                        summary = summary.strip().strip('*').strip()
+                
+                text = text.replace(
+                    detail,
+                    f'!DETAIL{open_}!SUMMARY{summary}SUMMARY!{content}DETAIL!')
+
+        verses = re.findall(r'v\d+ ', text)
+        if verses:
+            for verse in verses:
+                text = text.replace(verse, f'!VERSE{verse[1:]}VERSE!')
+
+        text = markdown(text).replace(
+            '!DETAIL_OPEN', f'\n<details open>\n').replace(
+            '!DETAIL', f'\n<details>\n').replace(
+            'DETAIL!', '\n</details>\n').replace(
+            '!SUMMARY', '\n<summary>').replace(
+            'SUMMARY!', '</summary>\n').replace(
+            '!VERSE', '<small class="verse">\n').replace(
+            'VERSE!', '</small>')
+
+        return text
+
     def _set_body(self) -> str:
         body = ''
         for line in self._parser.parse['document']:
@@ -128,7 +170,7 @@ class DocxHTML(object):
                 run_tag += '<' + t['tag']
                 run_tag += ''.join(
                     [f' {key}="{value}"' for key, value in t.items()
-                    if key != 'tag' and key != 'id'])
+                    if key != 'tag'])
                 run_tag += '>'
 
                 if 'comment-button' in t.values():
@@ -167,7 +209,8 @@ class DocxHTML(object):
 
             text = ''
             for run in line.runs:
-                text += ' '*7 + f'<p>{run.text}</p>\n'
+                text += f'{run.text}\n\n'
+            text = self._markdown_to_html(text)
 
             tag_end = MODAL_END
 

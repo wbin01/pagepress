@@ -150,8 +150,7 @@ class Run(object):
             id_ = id_[0] if id_ else ''
             tags.append({
                 'tag': 'a', 'type': 'button', 'class': f'comment-button',
-                'data-bs-toggle': 'modal', 'data-bs-target': f'#modal{id_}',
-                'id': id_,})
+                'data-bs-toggle': 'modal', 'data-bs-target': f'#modal{id_}'})
 
         if '<w:b/>' in self._xml:
             tags.append({'tag': 'b'})
