@@ -144,8 +144,14 @@ class DocxHTML(object):
         body = ''
         for line in self._parser.parse['document']:
             tag_start = '  <' + self._map[line.type]
-            if line.classes:
-                tag_start += f' class="{' '.join(line.classes)}"'
+
+            align = ''
+            if 'text-align' in line.styles:
+                align = f'text-{line.styles["text-align"]}'
+            
+            if line.classes or align:
+                if line.classes: align += ' '
+                tag_start += f' class="{align}{' '.join(line.classes)}"'
 
             if line.properties:
                 for key, value in line.properties.items():
@@ -154,11 +160,13 @@ class DocxHTML(object):
             if line.styles:
                 tag_start += ' style="'
                 for key, value in line.styles.items():
-                    tag_start += f'{key}: {value}; '
+                    if key != 'text-align':
+                        tag_start += f'{key}: {value}; '
                 tag_start += '"'
+            tag_start = tag_start.replace(' style=""', '')
 
             tag_start += '>'
-            content = self._set_body_runs(line.runs)
+            content = self._set_body_runs(line)
             tag_end = f'</{self._map[line.type]}>\n'
 
             tag = tag_start + content + tag_end
@@ -166,9 +174,9 @@ class DocxHTML(object):
 
         return body
 
-    def _set_body_runs(self, runs) -> str:
+    def _set_body_runs(self, line) -> str:
         content = ''
-        for run in runs:
+        for run in line.runs:
             text = run.text
 
             tag_start = ''
@@ -193,9 +201,12 @@ class DocxHTML(object):
                 src = run.properties['src']
                 width = run.properties['width']
                 height = run.properties['height']
+                align = ''
+                if 'text-align' in line.styles:
+                    align = f' class="text-{line.styles["text-align"]}"'
 
                 img = f'<img width="{width}" height="{height}" src="{src}">'
-                tag_start += f'<figure>{img}</figure>'
+                tag_start += f'<figure{align}>{img}</figure>'
 
             elif run.type == 'Draw':
                 pass
