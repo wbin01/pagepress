@@ -149,8 +149,9 @@ class Run(object):
                 r'<w:commentRangeStart w:id=\"([^\"]*)\"', self._xml)
             id_ = id_[0] if id_ else ''
             tags.append({
-                'tag': 'a', 'class': f'comment-button', 'id': id_,
-                'type': 'button', 'data-bs-target':f'#modal{id_}'})
+                'tag': 'a', 'type': 'button', 'class': f'comment-button',
+                'data-bs-toggle': 'modal', 'data-bs-target': f'#modal{id_}',
+                'id': id_,})
 
         if '<w:b/>' in self._xml:
             tags.append({'tag': 'b'})

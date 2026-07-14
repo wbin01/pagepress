@@ -24,7 +24,7 @@ GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 """
 
 MODAL_START = """
-  <!-- Modal #ID -->
+  <!-- Modal #MODAL_ID -->
   <div class="modal fade modal-text" id="modal#MODAL_ID" tabindex="-1" *
 aria-labelledby="#idLabel" aria-hidden="true" data-bs-theme="read">
    <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -66,7 +66,7 @@ class DocxHTML(object):
         self._cover = None
         self._title = None
         self._body = self._set_body()
-        self._modals = None
+        self._modals = self._set_modals()
         self._html = None
 
     @property
@@ -74,6 +74,7 @@ class DocxHTML(object):
         """..."""
         html = HTML_START
         html += self._body
+        html += self._modals
         html += HTML_END
         self._html = html.replace('*\n', '').strip()
         return self._html
@@ -93,7 +94,7 @@ class DocxHTML(object):
         with open(path, 'w') as f:
             f.write(html)
 
-    def _set_body(self) -> None:
+    def _set_body(self) -> str:
         body = ''
         for line in self._parser.parse['document']:
             tag_start = '  <' + self._map[line.type]
@@ -117,20 +118,7 @@ class DocxHTML(object):
             tag = tag_start + content + tag_end
             body += tag.replace(' "', '"')
 
-        modal = ''
-        for line in self._parser.parse['comments']:
-            tag_start = MODAL_START
-
-            content = ''
-            # for run in line.runs:
-            #     print('    ', run)
-
-            tag_end = MODAL_END
-
-            tag = tag_start + content + tag_end
-            modal += tag.replace(' "', '"')
-        
-        return body + modal
+        return body
 
     def _set_body_runs(self, runs) -> str:
         content = ''
@@ -168,6 +156,25 @@ class DocxHTML(object):
             content += run_tag
 
         return content
+
+    def _set_modals(self) -> str:
+        modals = ''
+        for line in self._parser.parse['comments']:
+            if not line.properties:
+                continue
+
+            tag_start = MODAL_START.replace('#MODAL_ID', line.properties['id'])
+
+            text = ''
+            for run in line.runs:
+                text += ' '*7 + f'<p>{run.text}</p>\n'
+
+            tag_end = MODAL_END
+
+            tag = tag_start + text + tag_end
+            modals += tag.replace(' "', '"')
+        
+        return modals
 
     @staticmethod
     def _get_map():
