@@ -244,7 +244,7 @@ class DocxHTML(object):
                 self._title, tag = tag, ''
 
             if len(line.runs) == 1 and line.runs[0].type == 'Image':
-                tag = '  ' + content
+                # tag = '  ' + content
                 if not self._cover:
                     self._cover, tag = content, ''
 
@@ -281,12 +281,6 @@ class DocxHTML(object):
 
             content += tag_start + txt
 
-            tag_end = ''
-            for t in run.tags:
-                tag_end += f'</{t['tag']}>'
-
-            content += tag_end
-
             if run.type == 'Image':
                 src = run.properties['src']
                 width = run.properties['width']
@@ -304,13 +298,19 @@ class DocxHTML(object):
                 if class_: class_ = ' ' + class_
 
                 img = f'<img width="{width}" height="{height}" src="{src}">'
-                content = f'<figure{class_}>{img}</figure>'
+                content += f'<figure{class_}>{img}</figure>'
 
                 if not self._cover and not self._title:
                     self._cover_src = src
 
             elif run.type == 'Draw':
                 pass
+
+            tag_end = ''
+            for t in run.tags:
+                tag_end += f'</{t['tag']}>'
+
+            content += tag_end
 
         if line.type == 'Title' and not self._title_text:
             self._title_text = text
