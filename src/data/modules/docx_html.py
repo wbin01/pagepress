@@ -297,8 +297,8 @@ class DocxHTML(object):
                     class_ = f'class="{line_align}"'
                 if class_: class_ = ' ' + class_
 
-                img = f'<img width="{width}" height="{height}" src="{src}">'
-                content += f'<figure{class_}>{img}</figure>'
+                img = f'width="{width}" height="{height}" src="{src}"'
+                content += f'<figure{class_}><img {img}{class_}></figure>'
 
                 if not self._cover and not self._title:
                     self._cover_src = src
