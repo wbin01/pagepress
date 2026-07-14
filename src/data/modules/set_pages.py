@@ -146,12 +146,10 @@ class SetPages(object):
         if not html.cover:
             cover = cover_alt
             title = title_alt
-        # _h = html.html
-        content_end = ' </div>\n  <!-- Content end-->\n </article>'
+
         html.start = start
         html.cover = cover.replace('#img', html.cover_src)
         html.title = title.replace('#title', html.title_text)
-        html.body = html.body.replace('</article>', content_end)
         html.end = end
 
         return html

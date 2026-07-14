@@ -108,12 +108,13 @@ class DocxHTML(object):
         return self._cover_src
 
     @cover_src.setter
-    def cover_src(self, cover_src: str) -> None:
+    def cover_src(self, src: str) -> None:
         """..."""
-        self._cover_src = cover_src
+        self._cover_src = src
 
     @property
-    def end(self) -> str: 
+    def end(self) -> str:
+        """..."""
         return self._end
 
     @end.setter
@@ -156,9 +157,9 @@ class DocxHTML(object):
         return self._title_text
 
     @title_text.setter
-    def title_text(self, title_text: str) -> None:
+    def title_text(self, text: str) -> None:
         """..."""
-        self._title_text = title_text
+        self._title_text = text
 
     def save(self, path: str = '', html: str = None) -> None:
         """..."""
@@ -219,13 +220,8 @@ class DocxHTML(object):
         for line in self._parser.parse['document']:
             tag_start = '  <' + self._map[line.type]
 
-            align = ''
-            if 'text-align' in line.styles:
-                align = f'text-{line.styles["text-align"]}'
-            
-            if line.classes or align:
-                if line.classes: align += ' '
-                tag_start += f' class="{align}{' '.join(line.classes)}"'
+            if line.classes:
+                tag_start += f' class="{' '.join(line.classes)}"'
 
             if line.properties:
                 for key, value in line.properties.items():
@@ -234,8 +230,7 @@ class DocxHTML(object):
             if line.styles:
                 tag_start += ' style="'
                 for key, value in line.styles.items():
-                    if key != 'text-align':
-                        tag_start += f'{key}: {value}; '
+                    tag_start += f'{key}: {value}; '
                 tag_start += '"'
             tag_start = tag_start.replace(' style=""', '')
 
@@ -249,11 +244,13 @@ class DocxHTML(object):
                 self._title, tag = tag, ''
 
             if len(line.runs) == 1 and line.runs[0].type == 'Image':
-                tag = content
+                tag = '  ' + content
+                if not self._cover:
+                    self._cover, tag = content, ''
 
             body += tag.replace(' "', '"')
 
-        body += '\n </article>\n </main>\n\n <footer></footer>\n'
+        body += '\n </article>\n </main>\n <!-- Content end-->\n'
 
         return body
 
@@ -295,21 +292,22 @@ class DocxHTML(object):
                 width = run.properties['width']
                 height = run.properties['height']
 
+                line_align = ' '.join(
+                    [x for x in line.classes if x.startswith('text-')])
+                if line_align: line_align = ' ' + line_align
+
                 class_ = ''
-                if run.classes: class_ = ' '.join(run.classes)
-
-                align = ''
-                if 'text-align' in line.styles:
-                    align = f' text-{line.styles["text-align"]}'
-
-                if class_ or align:
-                    class_ = f'class="{class_}{align}"'
+                if run.classes:
+                    class_ = f'class="{' '.join(run.classes)}{line_align}"'
+                elif line_align:
+                    class_ = f'class="{line_align}"'
+                if class_: class_ = ' ' + class_
 
                 img = f'<img width="{width}" height="{height}" src="{src}">'
-                content = f'<figure {class_}>{img}</figure>'
+                content = f'<figure{class_}>{img}</figure>'
 
                 if not self._cover and not self._title:
-                    self._cover, self._cover_src, content = content, src, ''
+                    self._cover_src = src
 
             elif run.type == 'Draw':
                 pass

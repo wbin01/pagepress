@@ -90,7 +90,7 @@ class Line(object):
         styles = {}
         if '<w:jc w:val=' in self._xml:
             align = re.findall(r'<w:jc w:val=\"([^\"]*)\"',self._xml,re.DOTALL)
-            if align: styles['text-align'] = align[0]
+            if align: self._classes.append(f'text-{align[0]}')
         return styles
 
     def _set_type(self) -> str:
