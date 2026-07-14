@@ -83,7 +83,7 @@ class Run(object):
                         ext = src.split('.')[-1].lower()
                         break
 
-            if src and self._img_as_base64:
+            if src and self._parent._parent._img_base64:
                 with ZipFile(self._path) as f:
                     src = base64.b64encode(f.read(src)).decode('ascii')
                     src = f'data:image/{ext};base64,{src}'
@@ -145,7 +145,10 @@ class Run(object):
 
         # Comment
         if '<w:commentRangeStart ' in self._xml:
-            tags.append({'tag': 'span', 'class': f'comment-button'})
+            id_ = re.findall(
+                r'<w:commentRangeStart w:id=\"([^\"]*)\"', self._xml)
+            id_ = id_[0] if id_ else ''
+            tags.append({'tag': 'span', 'class': f'comment-button', 'id': id_})
 
         if '<w:b/>' in self._xml:
             tags.append({'tag': 'b'})

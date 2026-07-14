@@ -58,9 +58,9 @@ HTML_END = """
 
 class DocxHTML(object):
     """..."""
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, img_base64: bool = False) -> None:
         """..."""
-        self._parser = DocxParse(path)
+        self._parser = DocxParse(path, img_base64)
 
         self._cover = None
         self._title = None
@@ -77,9 +77,8 @@ class DocxHTML(object):
         html = HTML_START
         html += self._body
         html += HTML_END
-        html = html.replace('*\n', '').strip()
-        print(html)
-        return html
+        self._html = html.replace('*\n', '').strip()
+        return self._html
 
     def save(self, path: str = '', html: str = None) -> None:
         """..."""
@@ -87,14 +86,49 @@ class DocxHTML(object):
             path = self._parser.path
 
         path = path.replace('.docx', '.html')
-        html = html if html else self.html
+        html = html if html else self._html
+
+        if not html:
+            if not self._html: self.html
+            html = self._html
 
         with open(path, 'w') as f:
             f.write(html)
 
-    def _set_html(self) -> None:
-        self._body = ''
+    def _render_content(self, runs) -> str:
+        content = ''
+        for run in runs:
+            run_tag = ''
+            for t in run.tags:
+                run_tag += '<' + t['tag']
+                run_tag += ''.join(
+                    [f' {key}="{value}"' for key, value in t.items()
+                    if key != 'tag'])
+                run_tag += '>'
 
+            if run.type == 'Image':
+                src = run.properties['src']
+                width = run.properties['width']
+                height = run.properties['height']
+
+                img = f'<img width="{width}" height="{height}" src="{src}">'
+                run_tag += f'<figure>{img}</figure>'
+
+            elif run.type == 'Draw':
+                pass
+
+            content += run_tag + run.text
+
+            run_tag = ''
+            for t in run.tags:
+                run_tag += f'</{t['tag']}>'
+
+            content += run_tag
+
+        return content
+
+    def _set_html(self) -> None:
+        body = ''
         for line in self._parser.parse['document']:
             tag_start = '<' + self._map[line.type]
             if line.classes:
@@ -111,16 +145,13 @@ class DocxHTML(object):
                 tag_start += '"'
 
             tag_start += '>'
-
-            content = ''
-            # for run in line.runs:
-            #     print('    ', run)
-
+            content = self._render_content(line.runs)
             tag_end = f'</{self._map[line.type]}>\n'
 
             tag = tag_start + content + tag_end
-            self._body += tag.replace(' "', '"')
+            body += tag.replace(' "', '"')
 
+        modal = ''
         for line in self._parser.parse['comments']:
             tag_start = MODAL_START
 
@@ -128,10 +159,12 @@ class DocxHTML(object):
             # for run in line.runs:
             #     print('    ', run)
 
-            if line.type == 'Comment': tag_end = MODAL_END
+            tag_end = MODAL_END
 
             tag = tag_start + content + tag_end
-            self._body += tag.replace(' "', '"')
+            modal += tag.replace(' "', '"')
+        
+        self._body = body + modal
 
     @staticmethod
     def _get_map():
@@ -143,6 +176,5 @@ class DocxHTML(object):
         return tags_map
 
 if __name__ == '__main__':
-    html = DocxHTML('~/doc.docx')
-    html.html
+    html = DocxHTML('~/doc.docx', img_base64=True)
     html.save()

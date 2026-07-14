@@ -15,9 +15,11 @@ NS_REL = {'r': 'http://schemas.openxmlformats.org/package/2006/relationships'}
 
 class DocxParse(object):
     """..."""
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, img_base64: bool = False) -> None:
         """..."""
         self._path = Path(os.path.expanduser(path)).as_posix()
+
+        self._img_base64 = img_base64
         self._xml_rels = self._get_rels()
         self._xml_styles = self._get_styles()
         self._comments = self._get_comments()
