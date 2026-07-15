@@ -156,7 +156,7 @@ class SetPages(object):
 
     def _index_content(self) -> None:
         with open(self._html_path/'card.html', 'r') as f:
-            card = f.read()
+            card, card_alt = f.read().split('<!-- / -->')
 
         for lang in self._langs:
             content = ''
@@ -173,19 +173,21 @@ class SetPages(object):
                     html = self._html_formatted_content(html, start, end)
                     html.save(self._site_path/lang/name)
 
+                    card_ = card_alt if not html.cover_src else card
                     if not html.cover_src: html.cover_src = self._blank_img
-                    content += card.replace(
+                    content += card_.replace(
                         '#title', html.title_text).replace(
                         '#link', name).replace(
-                        '#img_src', html.cover_src)
+                        '#img_src', html.cover_src).replace(
+                        '#img_noise', self._noise_img)
                 else:
-                    self._index_content_for_categs(lang, inode, card)
+                    self._index_content_for_categs(lang, inode, card, card_alt)
 
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(f'{start}{content}{end}')
 
     def _index_content_for_categs(
-            self, lang: str, inode: str, card: str) -> None:
+            self, lang: str, inode: str, card: str, card_alt: str) -> None:
         sub_content = ''
         with open(self._site_path/lang/inode/'index.html', 'r') as f:
             start, end = f.read().split('<!-- CONTENT -->')
@@ -200,11 +202,13 @@ class SetPages(object):
             html = self._html_formatted_content(html, start, end)
             html.save(self._site_path/lang/inode/name)
 
+            card_ = card_alt if not html.cover_src else card
             if not html.cover_src: html.cover_src = self._blank_img
-            sub_content += card.replace(
+            sub_content += card_.replace(
                 '#title', html.title_text).replace(
                 '#link', name).replace(
-                '#img_src', html.cover_src)
+                '#img_src', html.cover_src).replace(
+                '#img_noise', self._noise_img)
 
         with open(self._site_path/lang/inode/'index.html', 'w') as f:
             f.write(f'{start}{sub_content}{end}')

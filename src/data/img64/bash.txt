@@ -1,0 +1,2 @@
+base64 -w 0 imagem.jpg > imagem_base64.txt
+prefix: data:image/png;base64,
