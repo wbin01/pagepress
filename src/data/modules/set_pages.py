@@ -44,9 +44,9 @@ class SetPages(object):
         self._brand()
         self._nav_langs()
         self._nav_langs_index()
-        self._nav_categs()
-        self._nav_categs_index()
-        self._index_content()
+        self._nav_items()
+        self._index()
+        self._content_index()
         self._clear()
 
     def _brand(self) -> None:
@@ -154,64 +154,120 @@ class SetPages(object):
 
         return html
 
-    def _index_content(self) -> None:
+    def _content_index(self) -> None:
         with open(self._html_path/'card.html', 'r') as f:
-            card, card_alt = f.read().split('<!-- / -->')
+            card = f.read()
 
         for lang in self._langs:
-            content = ''
             with open(self._site_path/lang/'index.html', 'r') as f:
                 start, end = f.read().split('<!-- CONTENT -->')
 
+            content = ''
             for inode in os.listdir(self._docs_path/lang):
                 if os.path.isfile(self._docs_path/lang/inode):
                     if not inode.endswith('.docx'):
                         continue
 
-                    name = inode.replace('.docx', '.html')
+                    doc_name = inode.replace('.docx', '.html')
                     html = DocxHTML(self._docs_path/lang/inode)
                     html = self._html_formatted_content(html, start, end)
-                    html.save(self._site_path/lang/name)
+                    html.save(self._site_path/lang/doc_name)
 
-                    card_ = card_alt if not html.cover_src else card
                     if not html.cover_src: html.cover_src = self._blank_img
-                    content += card_.replace(
+                    content += card.replace(
                         '#title', html.title_text).replace(
-                        '#link', name).replace(
+                        '#link', doc_name).replace(
                         '#img_src', html.cover_src).replace(
                         '#img_noise', self._noise_img)
                 else:
-                    self._index_content_for_categs(lang, inode, card, card_alt)
+                    self._content_pages(lang, inode, card)
 
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(f'{start}{content}{end}')
 
-    def _index_content_for_categs(
-            self, lang: str, inode: str, card: str, card_alt: str) -> None:
-        sub_content = ''
-        with open(self._site_path/lang/inode/'index.html', 'r') as f:
+    def _content_pages(self, lang: str, page: str, card: str) -> None:
+        content = ''
+        with open(self._site_path/lang/page/'index.html', 'r') as f:
             start, end = f.read().split('<!-- CONTENT -->')
 
-        for item in os.listdir(self._docs_path/lang/inode):
-            if os.path.isdir(self._docs_path/lang/inode/item): continue
-            if not item.endswith('.docx'):
-                continue
-            
-            name = item.replace('.docx', '.html')
-            html = DocxHTML(self._docs_path/lang/inode/item)
-            html = self._html_formatted_content(html, start, end)
-            html.save(self._site_path/lang/inode/name)
+        with open(self._html_path/'categ.html', 'r') as f:
+            categ_card = f.read()
 
-            card_ = card_alt if not html.cover_src else card
+        files = []
+        dirs = []
+        for inode in os.listdir(self._docs_path/lang/page):
+            if os.path.isfile(self._docs_path/lang/page/inode):
+                if inode.endswith('.docx'): files.append(inode)
+            else:
+                dirs.append(inode)
+
+        if dirs:
+            content += '<div class="m-5"> </div>\n'
+            for num, inode in enumerate(dirs):
+                padding = 'pe-4 ps-2'
+                if num % 2 == 0:
+                    padding = 'ps-4 pe-2'
+                    content += '<div class="row m-0 p-0">\n'
+
+                categ_name = inode.upper()
+                content += categ_card.replace(
+                    '#title', categ_name).replace(
+                    '#link', inode + '/index.html').replace(
+                    '#img_src', self._blank_img).replace(
+                    '#img_noise', self._noise_img).replace(
+                    '#padding', padding)
+
+                if num % 2 != 0 or len(dirs) == 1:
+                    content += '\n</div>\n'
+
+                index_path = self._site_path/lang/page/inode/'index.html'
+                index_path.parent.mkdir(parents=True, exist_ok=True)
+                self._content_categs(lang, page, inode, card)
+
+        for inode in files:
+            doc_name = inode.replace('.docx', '.html')
+            html = DocxHTML(self._docs_path/lang/page/inode)
+            html = self._html_formatted_content(html, start, end)
+            html.save(self._site_path/lang/page/doc_name)
+
             if not html.cover_src: html.cover_src = self._blank_img
-            sub_content += card_.replace(
+            content += card.replace(
                 '#title', html.title_text).replace(
-                '#link', name).replace(
+                '#link', doc_name).replace(
                 '#img_src', html.cover_src).replace(
                 '#img_noise', self._noise_img)
 
-        with open(self._site_path/lang/inode/'index.html', 'w') as f:
-            f.write(f'{start}{sub_content}{end}')
+        with open(self._site_path/lang/page/'index.html', 'w') as f:
+            f.write(f'{start}{content}{end}')
+
+    def _content_categs(
+            self, lang: str, page: str, categ: str, card: str) -> None:
+        content = ''
+        with open(self._site_path/lang/page/'index.html', 'r') as f:
+            html = f.read()
+
+        html = self._update_nav_links(lang, html, 'SUB-CATEG')
+        start, end = html.split('<!-- CONTENT -->')
+
+        for inode in os.listdir(self._docs_path/lang/page/categ):
+            if os.path.isfile(self._docs_path/lang/page/categ/inode):
+                if not inode.endswith('.docx'):
+                    continue
+                
+                doc_name = inode.replace('.docx', '.html')
+                html = DocxHTML(self._docs_path/lang/page/categ/inode)
+                html = self._html_formatted_content(html, start, end)
+                html.save(self._site_path/lang/page/categ/doc_name)
+
+                if not html.cover_src: html.cover_src = self._blank_img
+                content += card.replace(
+                    '#title', html.title_text).replace(
+                    '#link', doc_name).replace(
+                    '#img_src', html.cover_src).replace(
+                    '#img_noise', self._noise_img)
+
+        with open(self._site_path/lang/page/categ/'index.html', 'w') as f:
+            f.write(f'{start}{content}{end}')
 
     def _langs_code(self) -> list:
         langs = []
@@ -246,7 +302,7 @@ class SetPages(object):
 
         return locales_code
 
-    def _nav_categs(self) -> None:
+    def _nav_items(self) -> None:
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 index = file_.read()
@@ -266,7 +322,7 @@ class SetPages(object):
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(new_index)
 
-    def _nav_categs_index(self) -> None:
+    def _index(self) -> None:
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 html = file_.read()
