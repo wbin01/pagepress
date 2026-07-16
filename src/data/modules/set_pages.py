@@ -137,8 +137,9 @@ class SetPages(object):
         return locales_code
 
     def _normalized_name(self, name: str, ext: str = '') -> str:
-        if not ext.startswith('.'): ext = '.' + ext
-        name = name[:-len(ext)].replace(' ', '-')
+        if ext:
+            if not ext.startswith('.'): ext = '.' + ext
+            name = name[:-len(ext)].replace(' ', '-')
 
         new_name = ''
         for char in name:
