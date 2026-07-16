@@ -152,7 +152,7 @@ class SetPages(object):
                 for num, x in enumerate(string.punctuation):
                     if x == char: new_name += f'-{num}'
             else:
-                new_name += '_'
+                new_name += '&'
 
         return new_name + ext
 
@@ -191,7 +191,8 @@ class SetPages(object):
     def _set_index_content_4_categs(
             self, lang: str, page: str, card: str) -> None:
         content = ''
-        with open(self._site_path/lang/page/'index.html', 'r') as f:
+        page_ = self._normalized_name(page)
+        with open(self._site_path/lang/page_/'index.html', 'r') as f:
             start, end = f.read().split('<!-- CONTENT -->')
 
         with open(self._html_path/'categ.html', 'r') as f:
@@ -208,6 +209,7 @@ class SetPages(object):
         if dirs:
             content += '<div class="m-5"> </div>\n'
             for num, inode in enumerate(dirs):
+                inode_ = self._normalized_name(inode)
                 padding = 'pe-4 ps-2'
                 if num % 2 == 0:
                     padding = 'ps-4 pe-2'
@@ -216,7 +218,7 @@ class SetPages(object):
                 categ_name = inode.upper()
                 content += categ_card.replace(
                     '#title', categ_name).replace(
-                    '#link', inode + '/index.html').replace(
+                    '#link', inode_ + '/index.html').replace(
                     '#img_src', self._blank_img).replace(
                     '#img_noise', self._noise_img).replace(
                     '#padding', padding)
@@ -224,7 +226,8 @@ class SetPages(object):
                 if num % 2 != 0 or len(dirs) == 1:
                     content += '\n</div>\n'
 
-                index_path = self._site_path/lang/page/inode/'index.html'
+                
+                index_path = self._site_path/lang/page_/inode_/'index.html'
                 index_path.parent.mkdir(parents=True, exist_ok=True)
                 self._set_index_content_4_sub_categs(lang, page, inode, card)
 
@@ -233,7 +236,7 @@ class SetPages(object):
             doc_name = self._normalized_name(doc_name, '.html')
             html = DocxHTML(self._docs_path/lang/page/inode)
             html = self._html_formatted_content(html, start, end)
-            html.save(self._site_path/lang/page/doc_name)
+            html.save(self._site_path/lang/page_/doc_name)
 
             if not html.cover_src: html.cover_src = self._blank_img
             content += card.replace(
@@ -242,13 +245,15 @@ class SetPages(object):
                 '#img_src', html.cover_src).replace(
                 '#img_noise', self._noise_img)
 
-        with open(self._site_path/lang/page/'index.html', 'w') as f:
+        with open(self._site_path/lang/page_/'index.html', 'w') as f:
             f.write(f'{start}{content}{end}')
 
     def _set_index_content_4_sub_categs(
             self, lang: str, page: str, categ: str, card: str) -> None:
+        page_ = self._normalized_name(page)
+        categ_ = self._normalized_name(categ)
         content = ''
-        with open(self._site_path/lang/page/'index.html', 'r') as f:
+        with open(self._site_path/lang/page_/'index.html', 'r') as f:
             html = f.read()
 
         html = self._update_nav_links(lang, html, 'SUB-CATEG')
@@ -263,7 +268,7 @@ class SetPages(object):
                 doc_name = self._normalized_name(doc_name, '.html')
                 html = DocxHTML(self._docs_path/lang/page/categ/inode)
                 html = self._html_formatted_content(html, start, end)
-                html.save(self._site_path/lang/page/categ/doc_name)
+                html.save(self._site_path/lang/page_/categ_/doc_name)
 
                 if not html.cover_src: html.cover_src = self._blank_img
                 content += card.replace(
@@ -272,7 +277,7 @@ class SetPages(object):
                     '#img_src', html.cover_src).replace(
                     '#img_noise', self._noise_img)
 
-        with open(self._site_path/lang/page/categ/'index.html', 'w') as f:
+        with open(self._site_path/lang/page_/categ_/'index.html', 'w') as f:
             f.write(f'{start}{content}{end}')
 
     def _set_nav_brand(self) -> None:
@@ -305,6 +310,7 @@ class SetPages(object):
 
             li_itens = ''
             for node in os.listdir(self._docs_path/lang):
+                node_ = self._normalized_name(node)
                 if os.path.isdir(self._docs_path/lang/node):
                     li_itens += """
                         <li class="nav-item m-0 p-0">
@@ -312,7 +318,7 @@ class SetPages(object):
                         </li>
                         """.replace(' '*24, ' '*5).format(
                             'aria-current="page"',
-                            'class="m-0 mx-2 p-0 nav-link"', node, node)
+                            'class="m-0 mx-2 p-0 nav-link"', node_, node)
 
             new_index = index.replace('<!-- NAV ITEM -->', li_itens)
             with open(self._site_path/lang/'index.html', 'w+') as f:
@@ -325,11 +331,12 @@ class SetPages(object):
 
             html = self._update_nav_links(lang, html, 'CATEG')
             for inode in os.listdir(self._docs_path/lang):
+                inode_ = self._normalized_name(inode)
                 if os.path.isdir(self._docs_path/lang/inode):
-                    path = self._site_path/lang/inode/'index.html'
+                    path = self._site_path/lang/inode_/'index.html'
                     path.parent.mkdir(parents=True, exist_ok=True)
 
-                    link = re.findall(r'-link\" href=\"[^\"]+\">'+inode, html)
+                    link = re.findall(r'-link\" href=\"[^\"]+\">'+inode_, html)
                     if link:
                         n = link[0].replace('-link', '-link active')
                         html = html.replace(link[0], n)
@@ -404,9 +411,10 @@ class SetPages(object):
         # Pages link
         for i in os.listdir(self._docs_path/lang):
             if os.path.isdir(self._docs_path/lang/i):
+                i_ = self._normalized_name(i)
                 html = html.replace(
-                    f'href="{pages_prev}{i}/index.html"',
-                    f'href="{pages_next}{i}/index.html"')
+                    f'href="{pages_prev}{i_}/index.html"',
+                    f'href="{pages_next}{i_}/index.html"')
         return html
 
 
