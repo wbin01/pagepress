@@ -4,6 +4,7 @@ import os
 import hashlib
 import locale
 import shutil
+import string
 from pathlib import Path
 
 from .conf_file import ConfFile
@@ -40,6 +41,7 @@ class SetPages(object):
         self._conf_page = ConfFile(self._data_path/'page.conf')
 
         self._icon_close = SvgIconToHTML('close').html
+        self._name_chars = string.ascii_lowercase + string.digits
 
         self._set_nav_brand()
         self._set_nav_langs()
@@ -47,25 +49,6 @@ class SetPages(object):
         self._set_nav_items()
         self._set_nav_items_active()
         self._set_indexes_content()
-        self._clear()
-
-    def _clear(self) -> None:
-        for node in os.listdir(self._site_path):
-            if os.path.isdir(self._site_path/node) and node not in self._langs:
-                # shutil.rmtree(self._site_path/node)
-                with open(self._html_path/'clear.html', 'r') as file_:
-                    html_clear = file_.read()
-                html_clear = html_clear.replace(
-                    'const defaultLang = "en-US";',
-                    f'const defaultLang = "{self._langs[0]}";')
-                with open(self._site_path/node/'index.html', 'w') as file_:
-                    file_.write(html_clear)
-
-        for lang in self._langs:
-            self._delete_missing_inodes(lang)
-            for inode in os.listdir(self._site_path/lang):
-                if os.path.isdir(self._site_path/lang/inode):
-                    self._delete_missing_inodes(f'{lang}/{inode}')
 
     def _conf(self, name: str, key: str) -> str:
         if f'[{name}]' in self._conf_user.content:
@@ -83,17 +66,6 @@ class SetPages(object):
         if value == 'True': value = True
         if value == 'False': value = False
         return value
-
-    def _delete_missing_inodes(self, inode_path):
-        docs = [x for x in os.listdir(self._docs_path/inode_path)]
-
-        for inode in os.listdir(self._site_path/inode_path):
-            if inode == 'index.html': continue
-            if inode.replace('.html', '.docx') not in docs:
-                if os.path.isfile(self._site_path/inode_path/inode):
-                    os.remove(self._site_path/inode_path/inode)
-                else:
-                    shutil.rmtree(self._site_path/inode_path/inode)
 
     def _hash(self, path: str):
         h = hashlib.new('md5')  # sha256
@@ -164,6 +136,25 @@ class SetPages(object):
 
         return locales_code
 
+    def _normalized_name(self, name: str, ext: str = '') -> str:
+        if not ext.startswith('.'): ext = '.' + ext
+        name = name[:-len(ext)].replace(' ', '-')
+
+        new_name = ''
+        for char in name:
+            char = char.lower()
+
+            if char in self._name_chars or char == '-':
+                new_name += char
+
+            elif char in string.punctuation:
+                for num, x in enumerate(string.punctuation):
+                    if x == char: new_name += f'-{num}'
+            else:
+                new_name += '_'
+
+        return new_name + ext
+
     def _set_indexes_content(self) -> None:
         with open(self._html_path/'card.html', 'r') as f:
             card = f.read()
@@ -179,6 +170,7 @@ class SetPages(object):
                         continue
 
                     doc_name = inode.replace('.docx', '.html')
+                    doc_name = self._normalized_name(doc_name, '.html')
                     html = DocxHTML(self._docs_path/lang/inode)
                     html = self._html_formatted_content(html, start, end)
                     html.save(self._site_path/lang/doc_name)
@@ -237,6 +229,7 @@ class SetPages(object):
 
         for inode in files:
             doc_name = inode.replace('.docx', '.html')
+            doc_name = self._normalized_name(doc_name, '.html')
             html = DocxHTML(self._docs_path/lang/page/inode)
             html = self._html_formatted_content(html, start, end)
             html.save(self._site_path/lang/page/doc_name)
@@ -266,6 +259,7 @@ class SetPages(object):
                     continue
                 
                 doc_name = inode.replace('.docx', '.html')
+                doc_name = self._normalized_name(doc_name, '.html')
                 html = DocxHTML(self._docs_path/lang/page/categ/inode)
                 html = self._html_formatted_content(html, start, end)
                 html.save(self._site_path/lang/page/categ/doc_name)
