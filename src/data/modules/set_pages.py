@@ -41,36 +41,13 @@ class SetPages(object):
 
         self._icon_close = SvgIconToHTML('close').html
 
-        self._brand()
-        self._nav_langs()
-        self._nav_langs_index()
-        self._nav_items()
-        self._index()
-        self._content_index()
+        self._set_nav_brand()
+        self._set_nav_langs()
+        self._set_nav_langs_index_redirection()
+        self._set_nav_items()
+        self._set_nav_items_active()
+        self._set_indexes_content()
         self._clear()
-
-    def _brand(self) -> None:
-        name = ''
-        if self._conf('Brand', 'display_name'):
-            name = self._conf('Brand', 'name')
-
-        logo = ''
-        if self._conf('Brand', 'display_logo'):
-            logo = (PATH/self._conf('Brand', 'logo')).as_posix()
-
-        self._html_top = self._html_top.replace(
-            '#brand', logo).replace(
-                '#favicon', (PATH/self._conf('Brand', 'favicon')).as_posix()
-            ).replace(
-                '<!-- TAB TITLE-->', self._conf('Brand', 'name')
-            ).replace(
-                '<!-- PAGE NAME -->', name
-            ).replace(
-                '#LightSubtitleColor',
-                self._conf('Post:LightTheme', 'subtitle_color')
-            ).replace(
-                '#DarkSubtitleColor',
-                self._conf('Post:DarkTheme', 'subtitle_color'))
 
     def _clear(self) -> None:
         for node in os.listdir(self._site_path):
@@ -154,7 +131,40 @@ class SetPages(object):
 
         return html
 
-    def _content_index(self) -> None:
+    def _langs_code(self) -> list:
+        langs = []
+        for lang_dir in os.listdir(self._docs_path):
+            if os.path.isdir(self._docs_path/lang_dir):
+                if os.listdir(self._docs_path/lang_dir):
+                    langs.append(lang_dir)
+
+        if not langs:
+            langs.append(self._default_lang)
+            file_path = self._docs_path/self._default_lang/'settings.conf'
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        return langs
+
+    def _locales_code(self) -> list:
+        locales_code = [
+            x[1].split('.')[0] for x in locale.locale_alias.items()]
+
+        locales = []
+        for local in locales_code:
+            if local not in locales: locales.append(local)
+        
+        if locales: locales.sort()
+        with open(self._docs_path/'langs.txt', 'w') as local_file:
+            local_file.write(
+                "\nYou don't need to write the correct language code — any "
+                "name will do — but using the correct one helps with the "
+                "site's indexing.\n\n")
+            for local in locales:
+                local_file.write(local.replace('_', '-') + '\n')
+
+        return locales_code
+
+    def _set_indexes_content(self) -> None:
         with open(self._html_path/'card.html', 'r') as f:
             card = f.read()
 
@@ -180,12 +190,13 @@ class SetPages(object):
                         '#img_src', html.cover_src).replace(
                         '#img_noise', self._noise_img)
                 else:
-                    self._content_pages(lang, inode, card)
+                    self._set_index_content_4_categs(lang, inode, card)
 
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(f'{start}{content}{end}')
 
-    def _content_pages(self, lang: str, page: str, card: str) -> None:
+    def _set_index_content_4_categs(
+            self, lang: str, page: str, card: str) -> None:
         content = ''
         with open(self._site_path/lang/page/'index.html', 'r') as f:
             start, end = f.read().split('<!-- CONTENT -->')
@@ -222,7 +233,7 @@ class SetPages(object):
 
                 index_path = self._site_path/lang/page/inode/'index.html'
                 index_path.parent.mkdir(parents=True, exist_ok=True)
-                self._content_categs(lang, page, inode, card)
+                self._set_index_content_4_sub_categs(lang, page, inode, card)
 
         for inode in files:
             doc_name = inode.replace('.docx', '.html')
@@ -240,7 +251,7 @@ class SetPages(object):
         with open(self._site_path/lang/page/'index.html', 'w') as f:
             f.write(f'{start}{content}{end}')
 
-    def _content_categs(
+    def _set_index_content_4_sub_categs(
             self, lang: str, page: str, categ: str, card: str) -> None:
         content = ''
         with open(self._site_path/lang/page/'index.html', 'r') as f:
@@ -269,40 +280,30 @@ class SetPages(object):
         with open(self._site_path/lang/page/categ/'index.html', 'w') as f:
             f.write(f'{start}{content}{end}')
 
-    def _langs_code(self) -> list:
-        langs = []
-        for lang_dir in os.listdir(self._docs_path):
-            if os.path.isdir(self._docs_path/lang_dir):
-                if os.listdir(self._docs_path/lang_dir):
-                    langs.append(lang_dir)
+    def _set_nav_brand(self) -> None:
+        name = ''
+        if self._conf('Brand', 'display_name'):
+            name = self._conf('Brand', 'name')
 
-        if not langs:
-            langs.append(self._default_lang)
-            file_path = self._docs_path/self._default_lang/'settings.conf'
-            file_path.parent.mkdir(parents=True, exist_ok=True)
+        logo = ''
+        if self._conf('Brand', 'display_logo'):
+            logo = (PATH/self._conf('Brand', 'logo')).as_posix()
 
-        return langs
+        self._html_top = self._html_top.replace(
+            '#brand', logo).replace(
+                '#favicon', (PATH/self._conf('Brand', 'favicon')).as_posix()
+            ).replace(
+                '<!-- TAB TITLE-->', self._conf('Brand', 'name')
+            ).replace(
+                '<!-- PAGE NAME -->', name
+            ).replace(
+                '#LightSubtitleColor',
+                self._conf('Post:LightTheme', 'subtitle_color')
+            ).replace(
+                '#DarkSubtitleColor',
+                self._conf('Post:DarkTheme', 'subtitle_color'))
 
-    def _locales_code(self) -> list:
-        locales_code = [
-            x[1].split('.')[0] for x in locale.locale_alias.items()]
-
-        locales = []
-        for local in locales_code:
-            if local not in locales: locales.append(local)
-        
-        if locales: locales.sort()
-        with open(self._docs_path/'langs.txt', 'w') as local_file:
-            local_file.write(
-                "\nYou don't need to write the correct language code — any "
-                "name will do — but using the correct one helps with the "
-                "site's indexing.\n\n")
-            for local in locales:
-                local_file.write(local.replace('_', '-') + '\n')
-
-        return locales_code
-
-    def _nav_items(self) -> None:
+    def _set_nav_items(self) -> None:
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 index = file_.read()
@@ -322,7 +323,7 @@ class SetPages(object):
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(new_index)
 
-    def _index(self) -> None:
+    def _set_nav_items_active(self) -> None:
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 html = file_.read()
@@ -333,16 +334,15 @@ class SetPages(object):
                     path = self._site_path/lang/inode/'index.html'
                     path.parent.mkdir(parents=True, exist_ok=True)
 
-                    n_html = html
-                    r = re.findall(r'-link\" href=\"[^\"]+\">' + inode, n_html)
-                    if r:
-                        n = r[0].replace('-link', '-link active')
-                        n_html = n_html.replace(r[0], n)
+                    link = re.findall(r'-link\" href=\"[^\"]+\">'+inode, html)
+                    if link:
+                        n = link[0].replace('-link', '-link active')
+                        html = html.replace(link[0], n)
 
                     with open(path, 'w') as file_:
-                        file_.write(n_html)
+                        file_.write(html)
 
-    def _nav_langs(self) -> None:
+    def _set_nav_langs(self) -> None:
         with open(self._html_path/'langs.html', 'r') as f:
             lang_btn, lang_item = f.read().split('<!-- / -->')
             lang_btn = lang_btn.replace('\n', '').strip()
@@ -360,7 +360,7 @@ class SetPages(object):
             '<!-- LANGS -->', langs).replace(
             '<!-- CLOSE ICON -->', self._icon_close)
 
-    def _nav_langs_index(self) -> None:
+    def _set_nav_langs_index_redirection(self) -> None:
         index_start = self._html_top.replace(
             '<html lang="en-US"',
             f'<html lang="{self._default_lang}"').replace(
