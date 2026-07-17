@@ -47,7 +47,7 @@ class SetPages(object):
         self._set_nav_langs()
         self._set_nav_langs_index_redirection()
         self._set_nav_items()
-        self._set_nav_items_active()
+        self._set_nav_items_indexes()
         self._set_indexes_content()
 
     def _conf(self, name: str, key: str) -> str:
@@ -83,7 +83,8 @@ class SetPages(object):
         return html.split('<!-- / -->')
 
     def _html_formatted_content(
-            self, html: DocxHTML, start: str, end: str) -> DocxHTML:
+            self, html: DocxHTML, start: str, end: str, page: str = ''
+            ) -> DocxHTML:
 
         with open(self._html_path/'cover.html', 'r') as f:
             cover = f.read().replace('#image', self._noise_img)
@@ -96,6 +97,7 @@ class SetPages(object):
             cover = cover_alt
             title = title_alt
 
+        if page: start = self._set_active_nav_item(page, start)
         html.start = start
         html.cover = cover.replace('#img', html.cover_src)
         html.title = title.replace('#title', html.title_text)
@@ -155,6 +157,13 @@ class SetPages(object):
                 new_name += '&'
 
         return new_name + ext
+
+    def _set_active_nav_item(self, page: str, html: str) -> str:
+        link = re.findall(rf' nav-link\" href=\"[^\"]*\">{page}', html)
+        if link:
+            html = html.replace(
+                link[0], link[0].replace(' nav-link', ' nav-link active'))
+        return html
 
     def _set_indexes_content(self) -> None:
         with open(self._html_path/'card.html', 'r') as f:
@@ -235,7 +244,7 @@ class SetPages(object):
             doc_name = inode.replace('.docx', '.html')
             doc_name = self._normalized_name(doc_name, '.html')
             html = DocxHTML(self._docs_path/lang/page/inode)
-            html = self._html_formatted_content(html, start, end)
+            html = self._html_formatted_content(html, start, end, page)
             html.save(self._site_path/lang/page_/doc_name)
 
             if not html.cover_src: html.cover_src = self._blank_img
@@ -246,6 +255,7 @@ class SetPages(object):
                 '#img_noise', self._noise_img)
 
         with open(self._site_path/lang/page_/'index.html', 'w') as f:
+            start = self._set_active_nav_item(page, start)
             f.write(f'{start}{content}{end}')
 
     def _set_index_content_4_sub_categs(
@@ -267,7 +277,7 @@ class SetPages(object):
                 doc_name = inode.replace('.docx', '.html')
                 doc_name = self._normalized_name(doc_name, '.html')
                 html = DocxHTML(self._docs_path/lang/page/categ/inode)
-                html = self._html_formatted_content(html, start, end)
+                html = self._html_formatted_content(html, start, end, page)
                 html.save(self._site_path/lang/page_/categ_/doc_name)
 
                 if not html.cover_src: html.cover_src = self._blank_img
@@ -278,6 +288,7 @@ class SetPages(object):
                     '#img_noise', self._noise_img)
 
         with open(self._site_path/lang/page_/categ_/'index.html', 'w') as f:
+            start = self._set_active_nav_item(page, start)
             f.write(f'{start}{content}{end}')
 
     def _set_nav_brand(self) -> None:
@@ -324,7 +335,7 @@ class SetPages(object):
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(new_index)
 
-    def _set_nav_items_active(self) -> None:
+    def _set_nav_items_indexes(self) -> None:
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 html = file_.read()
@@ -335,11 +346,6 @@ class SetPages(object):
                 if os.path.isdir(self._docs_path/lang/inode):
                     path = self._site_path/lang/inode_/'index.html'
                     path.parent.mkdir(parents=True, exist_ok=True)
-
-                    link = re.findall(r'-link\" href=\"[^\"]+\">'+inode_, html)
-                    if link:
-                        n = link[0].replace('-link', '-link active')
-                        html = html.replace(link[0], n)
 
                     with open(path, 'w') as file_:
                         file_.write(html)
