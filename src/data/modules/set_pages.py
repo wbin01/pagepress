@@ -42,6 +42,7 @@ class SetPages(object):
 
         self._icon_close = SvgIconToHTML('close').html
         self._name_chars = string.ascii_lowercase + string.digits
+        self._items_per_page = 2
 
         self._set_nav_brand()
         self._set_nav_langs()
@@ -173,11 +174,12 @@ class SetPages(object):
             with open(self._site_path/lang/'index.html', 'r') as f:
                 start, end = f.read().split('<!-- CONTENT -->')
 
-            content = ''
+            pages, content, num = [], '', 0
             for inode in os.listdir(self._docs_path/lang):
                 if os.path.isfile(self._docs_path/lang/inode):
                     if not inode.endswith('.docx'):
                         continue
+                    num += 1
 
                     doc_name = inode.replace('.docx', '.html')
                     doc_name = self._normalized_name(doc_name, '.html')
@@ -191,11 +193,65 @@ class SetPages(object):
                         '#link', doc_name).replace(
                         '#img_src', html.cover_src).replace(
                         '#img_noise', self._noise_img)
+
+                    if num == self._items_per_page:
+                        pages.append(content)
+                        content, num = '', 0
                 else:
                     self._set_index_content_4_categs(lang, inode, card)
 
-            with open(self._site_path/lang/'index.html', 'w+') as f:
-                f.write(f'{start}{content}{end}')
+            if content and content not in pages: pages.append(content)
+            for num, content in enumerate(pages):
+                num += 1
+                content = self._set_pagination(content, num, len(pages))
+
+                if num == 1: num = ''
+                with open(self._site_path/lang/f'index{num}.html', 'w+') as f:
+                    f.write(f'{start}{content}{end}')
+
+    def _set_pagination(self, html: str, num: int, pages: int) -> str:
+        with open(self._html_path/'pagination.html') as f:
+            pag_min, pag_simple, pag_full = f.read().split('<!-- / -->')
+
+        if pages == 1:
+            control = ''
+        elif pages == 2:
+            control = pag_min
+        elif pages <= 3:
+            control = pag_simple
+        else:
+            control = pag_full
+
+        if pages == 2:
+            p1, p2, p3 = 1, 2, 3
+        elif num <= 2:
+            p1, p2, p3 = 1, 2, 3
+        elif num == pages:
+            p1, p2, p3 = num - 2, num - 1, num
+        elif 2 < num <= pages:
+            p1, p2, p3 = num - 1, num, num + 1
+        
+        if p1 == num:
+            control = control.replace('-body">#P1', '-body active">#P1')
+        elif p2 == num:
+            control = control.replace('-body">#P2', '-body active">#P2')
+        else:
+            control = control.replace('-body">#P3', '-body active">#P3')
+
+        control = control.replace(
+            '#P1', f'{p1}').replace('#P2', f'{p2}').replace('#P3', f'{p3}')
+
+        if p1 == 1: p1 = ''
+        control = control.replace(
+            '#first', f'index.html').replace(
+            '#p1', f'index{p1}.html').replace(
+            '#p2', f'index{p2}.html').replace(
+            '#p3', f'index{p3}.html').replace(
+            '#last', f'index{pages}.html').replace(
+            '#NUM', str(num)).replace('#PAGES', str(pages))
+
+        html += control
+        return html
 
     def _set_index_content_4_categs(
             self, lang: str, page: str, card: str) -> None:
