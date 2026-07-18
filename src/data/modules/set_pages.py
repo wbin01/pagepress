@@ -44,12 +44,20 @@ class SetPages(object):
         self._name_chars = string.ascii_lowercase + string.digits
         self._items_per_page = 3
 
+        self._clear()
         self._set_nav_brand()
         self._set_nav_langs()
         self._set_nav_langs_index_redirection()
         self._set_nav_items()
         self._set_nav_items_indexes()
         self._set_indexes_content()
+
+    def _clear(self) -> None:
+        for item in self._site_path.iterdir():
+            if item.is_file() or item.is_symlink():
+                item.unlink()
+            elif item.is_dir():
+                shutil.rmtree(item)
 
     def _conf(self, name: str, key: str) -> str:
         if f'[{name}]' in self._conf_user.content:
@@ -504,7 +512,7 @@ class SetPages(object):
         html += control
         return html
 
-    def _sorted(self, str_list: list, is_dirs: bool = False) -> str:
+    def _sorted(self, str_list: list, is_dirs: bool = False) -> list:
         alphas, ints = [], []
         for item in str_list:
             item = item.strip()
