@@ -174,10 +174,10 @@ class SetPages(object):
             with open(self._site_path/lang/'index.html', 'r') as f:
                 start, end = f.read().split('<!-- CONTENT -->')
 
-            pages, content, num = [], '', 0
+            pages, content, num, single_page = [], '', 0, False
             for inode in os.listdir(self._docs_path/lang):
                 if os.path.isfile(self._docs_path/lang/inode):
-                    if not inode.endswith('.docx'):
+                    if single_page or not inode.endswith('.docx'):
                         continue
                     num += 1
 
@@ -194,12 +194,17 @@ class SetPages(object):
                         '#img_src', html.cover_src).replace(
                         '#img_noise', self._noise_img)
 
+                    if inode.startswith('*'):
+                        single_page = True
+                        html.save(self._site_path/lang/'index.html')
+
                     if num == self._items_per_page:
                         pages.append(content)
                         content, num = '', 0
                 else:
                     self._set_index_content_4_categs(lang, inode, card)
 
+            if single_page: continue
             if content and content not in pages: pages.append(content)
             for num, content in enumerate(pages):
                 num += 1
@@ -246,14 +251,15 @@ class SetPages(object):
 
                 if num % 2 != 0 or len(dirs) == 1:
                     content += '\n</div>\n'
-
                 
                 index_path = self._site_path/lang/page_/inode_/'index.html'
                 index_path.parent.mkdir(parents=True, exist_ok=True)
                 self._set_index_content_4_sub_categs(lang, page, inode, card)
 
-        pages, num = [], 0
+        pages, num, single_page = [], 0, False
         for inode in files:
+            if single_page: continue
+
             num += 1
             doc_name = inode.replace('.docx', '.html')
             doc_name = self._normalized_name(doc_name, '.html')
@@ -268,10 +274,15 @@ class SetPages(object):
                 '#img_src', html.cover_src).replace(
                 '#img_noise', self._noise_img)
 
+            if inode.startswith('*'):
+                single_page = True
+                html.save(self._site_path/lang/page_/'index.html')
+
             if num == self._items_per_page:
                 pages.append(content)
                 content, num = '', 0
 
+        if single_page: return
         if content and content not in pages: pages.append(content)
         for num, content in enumerate(pages):
             num += 1
@@ -293,9 +304,10 @@ class SetPages(object):
         html = self._update_nav_links(lang, html, 'SUB-CATEG')
         start, end = html.split('<!-- CONTENT -->')
 
-        pages, content, num = [], '', 0
+        pages, content, num, single_page = [], '', 0, False
         for inode in os.listdir(self._docs_path/lang/page/categ):
             if os.path.isfile(self._docs_path/lang/page/categ/inode):
+                if single_page: break
                 if not inode.endswith('.docx'):
                     continue
                 num += 1
@@ -313,10 +325,15 @@ class SetPages(object):
                     '#img_src', html.cover_src).replace(
                     '#img_noise', self._noise_img)
 
+                if inode.startswith('*'):
+                    single_page = True
+                    html.save(self._site_path/lang/page_/categ_/'index.html')
+
                 if num == self._items_per_page:
                     pages.append(content)
                     content, num = '', 0
 
+        if single_page: return
         if content and content not in pages: pages.append(content)
         for num, content in enumerate(pages):
             num += 1
