@@ -175,7 +175,7 @@ class SetPages(object):
                 start, end = f.read().split('<!-- CONTENT -->')
 
             pages, content, num, single_page = [], '', 0, False
-            for inode in os.listdir(self._docs_path/lang):
+            for inode in self._sorted(os.listdir(self._docs_path/lang)):
                 if os.path.isfile(self._docs_path/lang/inode):
                     if single_page or not inode.endswith('.docx'):
                         continue
@@ -224,8 +224,7 @@ class SetPages(object):
         with open(self._html_path/'categ.html', 'r') as f:
             categ_card = f.read()
 
-        files = []
-        dirs = []
+        dirs, files = [], []
         for inode in os.listdir(self._docs_path/lang/page):
             if os.path.isfile(self._docs_path/lang/page/inode):
                 if inode.endswith('.docx'): files.append(inode)
@@ -234,7 +233,7 @@ class SetPages(object):
 
         if dirs:
             content += '<div class="m-5"> </div>\n'
-            for num, inode in enumerate(dirs):
+            for num, inode in enumerate(self._sorted(dirs)):
                 inode_ = self._normalized_name(inode)
                 padding = 'pe-4 ps-2'
                 if num % 2 == 0:
@@ -257,7 +256,7 @@ class SetPages(object):
                 self._set_index_content_4_sub_categs(lang, page, inode, card)
 
         pages, num, single_page = [], 0, False
-        for inode in files:
+        for inode in self._sorted(files):
             if single_page: continue
 
             num += 1
@@ -305,7 +304,7 @@ class SetPages(object):
         start, end = html.split('<!-- CONTENT -->')
 
         pages, content, num, single_page = [], '', 0, False
-        for inode in os.listdir(self._docs_path/lang/page/categ):
+        for inode in self._sorted(os.listdir(self._docs_path/lang/page/categ)):
             if os.path.isfile(self._docs_path/lang/page/categ/inode):
                 if single_page: break
                 if not inode.endswith('.docx'):
@@ -495,6 +494,24 @@ class SetPages(object):
 
         html += control
         return html
+
+    def _sorted(self, str_list: list) -> str:
+        alphas, ints = [], []
+        for item in str_list:
+            num = re.findall(r'^\d+\.\d|^\d+', item)
+            if num:
+                num = float(num[0]) if '.' in num[0] else int(num[0])
+                ints.append((num, item))
+            else:
+                alphas.append((item.lower(), item))
+
+        end = []
+        for item in sorted(ints):
+            end.append(item[1])
+        for item in sorted(alphas):
+            end.append(item[1])
+
+        return end
 
     def _update_nav_links(self, lang: str, html: str, level: str) -> str:
         if level == 'CATEG':
