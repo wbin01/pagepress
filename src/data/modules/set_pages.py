@@ -142,9 +142,9 @@ class SetPages(object):
     def _normalized_name(self, name: str, ext: str = '') -> str:
         if ext:
             if not ext.startswith('.'): ext = '.' + ext
-            name = name[:-len(ext)].replace(' ', '_')
+            name = name[:-len(ext)]
 
-        new_name = ''
+        name, new_name = name.replace(' ', '-'), ''
         for char in name:
             char = char.lower()
 
@@ -157,7 +157,7 @@ class SetPages(object):
             else:
                 new_name += '&'
 
-        return new_name.replace('_-', '-').replace('-_', '-') + ext
+        return new_name.replace('--', '-') + ext
 
     def _set_active_nav_item(self, page: str, html: str) -> str:
         link = re.findall(rf' nav-link\" href=\"[^\"]*\">{page}', html)
@@ -303,8 +303,15 @@ class SetPages(object):
         html = self._update_nav_links(lang, html, 'SUB-CATEG')
         start, end = html.split('<!-- CONTENT -->')
 
+        items = os.listdir(self._docs_path/lang/page/categ)
+        if not items:
+            with open(self._site_path/lang/page_/categ_/'index.html','w') as f:
+                start = self._set_active_nav_item(page, start)
+                f.write(f'{start}{content}{end}')
+                return
+
         pages, content, num, single_page = [], '', 0, False
-        for inode in self._sorted(os.listdir(self._docs_path/lang/page/categ)):
+        for inode in self._sorted(items):
             if os.path.isfile(self._docs_path/lang/page/categ/inode):
                 if single_page: break
                 if not inode.endswith('.docx'):
