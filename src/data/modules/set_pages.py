@@ -142,13 +142,13 @@ class SetPages(object):
     def _normalized_name(self, name: str, ext: str = '') -> str:
         if ext:
             if not ext.startswith('.'): ext = '.' + ext
-            name = name[:-len(ext)].replace(' ', '-')
+            name = name[:-len(ext)].replace(' ', '_')
 
         new_name = ''
         for char in name:
             char = char.lower()
 
-            if char in self._name_chars or char == '-':
+            if char in self._name_chars or char == '-' or char == '_':
                 new_name += char
 
             elif char in string.punctuation:
@@ -157,7 +157,7 @@ class SetPages(object):
             else:
                 new_name += '&'
 
-        return new_name + ext
+        return new_name.replace('_-', '-').replace('-_', '-') + ext
 
     def _set_active_nav_item(self, page: str, html: str) -> str:
         link = re.findall(rf' nav-link\" href=\"[^\"]*\">{page}', html)
@@ -233,14 +233,14 @@ class SetPages(object):
 
         if dirs:
             content += '<div class="m-5"> </div>\n'
-            for num, inode in enumerate(self._sorted(dirs)):
+            for num, inode in enumerate(self._sorted(dirs, True)):
                 inode_ = self._normalized_name(inode)
                 padding = 'pe-4 ps-2'
                 if num % 2 == 0:
                     padding = 'ps-4 pe-2'
                     content += '<div class="row m-0 p-0">\n'
 
-                categ_name = inode.upper()
+                categ_name = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', inode.upper())
                 content += categ_card.replace(
                     '#title', categ_name).replace(
                     '#link', inode_ + '/index.html').replace(
@@ -373,7 +373,7 @@ class SetPages(object):
                 index = file_.read()
 
             li_itens = ''
-            for node in os.listdir(self._docs_path/lang):
+            for node in self._sorted(os.listdir(self._docs_path/lang), True):
                 node_ = self._normalized_name(node)
                 if os.path.isdir(self._docs_path/lang/node):
                     li_itens += """
@@ -382,7 +382,9 @@ class SetPages(object):
                         </li>
                         """.replace(' '*24, ' '*5).format(
                             'aria-current="page"',
-                            'class="m-0 mx-2 p-0 nav-link"', node_, node)
+                            'class="m-0 mx-2 p-0 nav-link"',
+                            node_,
+                            re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', node))
 
             new_index = index.replace('<!-- NAV ITEM -->', li_itens)
             with open(self._site_path/lang/'index.html', 'w+') as f:
@@ -495,9 +497,11 @@ class SetPages(object):
         html += control
         return html
 
-    def _sorted(self, str_list: list) -> str:
+    def _sorted(self, str_list: list, is_dirs: bool = False) -> str:
         alphas, ints = [], []
         for item in str_list:
+            item = item.strip()
+
             num = re.findall(r'^\d+\.\d|^\d+', item)
             if num:
                 num = float(num[0]) if '.' in num[0] else int(num[0])
@@ -511,7 +515,7 @@ class SetPages(object):
         for item in sorted(alphas):
             end.append(item[1])
 
-        return end
+        return end if is_dirs else reversed(end) 
 
     def _update_nav_links(self, lang: str, html: str, level: str) -> str:
         if level == 'CATEG':
