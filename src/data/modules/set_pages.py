@@ -28,6 +28,9 @@ class SetPages(object):
         self._html_top, self._html_end = self._html_base()
         self._langs = self._langs_code()
 
+        with open(self._html_path/'card.html', 'r') as f:
+            self._card = f.read()
+
         with open(self._data_path/'img64'/'noise.txt', 'r') as n:
             self._noise_img = n.read()
 
@@ -151,9 +154,9 @@ class SetPages(object):
                 link[0], link[0].replace(' nav-link', ' nav-link active'))
         return html
 
-    def _set_html_page_item(
+    def _set_html_item(
             self, html: DocxHTML, site_path: PATH, start: str, end: str,
-            card: str, page: str = '', single: bool = False) -> str:
+            page: str = '', single: bool = False) -> str:
 
         with open(self._html_path/'cover.html', 'r') as f:
             cover = f.read().replace('#image', self._noise_img)
@@ -183,20 +186,13 @@ class SetPages(object):
         html.save(site_path)
 
         if not html.cover_src: html.cover_src = self._blank_img
-        content = card.replace(
+        content = self._card.replace(
             '#title', html.title_text).replace(
             '#link', doc_name).replace(
             '#img_src', html.cover_src).replace(
             '#img_noise', self._noise_img)
 
         return content
-
-    def _set_single_page(self, doc_path, site_path, start, end) -> bool:
-        single = [x for x in doc_path.iterdir() if x.name.startswith('*')]
-        if single:
-            html = DocxHTML(single[0])
-            self._set_html_page_item(html, site_path, start, end, '', '', True)
-        return single
 
     def _set_indexes_content(self) -> None:
         with open(self._html_path/'card.html', 'r') as f:
@@ -215,12 +211,11 @@ class SetPages(object):
                 if (doc_path/inode).is_file():
                     if single or not inode.endswith('.docx'):
                         continue
-                    num += 1
-
+                    
                     html = DocxHTML(doc_path/inode)
-                    content += self._set_html_page_item(
-                        html, site_path, start, end, card)
+                    content += self._set_html_item(html, site_path, start, end)
 
+                    num += 1
                     if num == self._items_per_page:
                         pages.append(content)
                         content, num = '', 0
@@ -286,11 +281,10 @@ class SetPages(object):
 
         pages, num = [], 0
         for doc in self._sorted(docs):
-            num += 1
             html = DocxHTML(doc_path/doc)
-            content += self._set_html_page_item(
-                html, site_path, start, end, card, page)
+            content += self._set_html_item(html, site_path, start, end, page)
 
+            num += 1
             if num == self._items_per_page:
                 pages.append(content)
                 content, num = '', 0
@@ -333,12 +327,11 @@ class SetPages(object):
             if (doc_path/inode).is_file():
                 if not inode.endswith('.docx'):
                     continue
-                num += 1
-
+                
                 html = DocxHTML(doc_path/inode)
-                content += self._set_html_page_item(html,
-                    site_path, start, end, card, page)
+                content += self._set_html_item(html, site_path,start,end, page)
 
+                num += 1
                 if num == self._items_per_page:
                     pages.append(content)
                     content, num = '', 0
@@ -497,6 +490,13 @@ class SetPages(object):
 
         html += control
         return html
+
+    def _set_single_page(self, doc_path, site_path, start, end) -> bool:
+        single = [x for x in doc_path.iterdir() if x.name.startswith('*')]
+        if single:
+            html = DocxHTML(single[0])
+            self._set_html_item(html, site_path, start, end, '', True)
+        return single
 
     def _sorted(self, str_list: list | Path, is_dirs: bool = False) -> list:
         if isinstance(str_list, Path):
