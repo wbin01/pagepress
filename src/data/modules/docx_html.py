@@ -65,6 +65,7 @@ class DocxHTML(object):
     """..."""
     def __init__(self, path: str, img_base64: bool = True) -> None:
         """..."""
+        self._path = Path(path)
         self._parser = DocxParse(path, img_base64)
         self._map = self._get_map()
 
@@ -132,6 +133,11 @@ class DocxHTML(object):
         html += self._end
         self._html = html.replace('*\n', '').strip()
         return self._html
+
+    @property
+    def path(self) -> Path:
+        """..."""
+        return self._path
 
     @property
     def start(self) -> str: 

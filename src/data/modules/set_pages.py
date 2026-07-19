@@ -90,9 +90,9 @@ class SetPages(object):
             html = file_.read()
         return html.split('<!-- / -->')
 
-    def _html_formatted_content(
-            self, html: DocxHTML, start: str, end: str, page: str = ''
-            ) -> DocxHTML:
+    def _set_html_and_index_item(
+            self, html: DocxHTML, site_path: PATH, start: str, end: str,
+            card: str, page: str = '') -> str:
 
         with open(self._html_path/'cover.html', 'r') as f:
             cover = f.read().replace('#image', self._noise_img)
@@ -105,13 +105,27 @@ class SetPages(object):
             cover = cover_alt
             title = title_alt
 
-        if page: start = self._set_active_nav_item(page, start)
+        if page:
+            start = self._set_active_nav_item(page, start)
+        
         html.start = start
         html.cover = cover.replace('#img', html.cover_src)
         html.title = title.replace('#title', html.title_text)
         html.end = end
 
-        return html
+        doc_name = html.path.name.replace('.docx', '.html')
+        doc_name = self._normalized_name(doc_name, '.html')
+        p = Path(self._site_path)
+        html.save(site_path/doc_name)
+
+        if not html.cover_src: html.cover_src = self._blank_img
+        content = card.replace(
+            '#title', html.title_text).replace(
+            '#link', doc_name).replace(
+            '#img_src', html.cover_src).replace(
+            '#img_noise', self._noise_img)
+
+        return content
 
     def _langs_code(self) -> list:
         langs = []
@@ -187,19 +201,10 @@ class SetPages(object):
                     if single_page or not inode.endswith('.docx'):
                         continue
                     num += 1
-
-                    doc_name = inode.replace('.docx', '.html')
-                    doc_name = self._normalized_name(doc_name, '.html')
+                    
                     html = DocxHTML(self._docs_path/lang/inode)
-                    html = self._html_formatted_content(html, start, end)
-                    html.save(self._site_path/lang/doc_name)
-
-                    if not html.cover_src: html.cover_src = self._blank_img
-                    content += card.replace(
-                        '#title', html.title_text).replace(
-                        '#link', doc_name).replace(
-                        '#img_src', html.cover_src).replace(
-                        '#img_noise', self._noise_img)
+                    content += self._set_html_and_index_item(
+                        html, self._site_path/lang, start, end, card)
 
                     if inode.startswith('*'):
                         single_page = True
@@ -267,18 +272,9 @@ class SetPages(object):
             if single_page: continue
 
             num += 1
-            doc_name = doc.replace('.docx', '.html')
-            doc_name = self._normalized_name(doc_name, '.html')
             html = DocxHTML(self._docs_path/lang/page/doc)
-            html = self._html_formatted_content(html, start, end, page)
-            html.save(self._site_path/lang/page_/doc_name)
-
-            if not html.cover_src: html.cover_src = self._blank_img
-            content += card.replace(
-                '#title', html.title_text).replace(
-                '#link', doc_name).replace(
-                '#img_src', html.cover_src).replace(
-                '#img_noise', self._noise_img)
+            content += self._set_html_and_index_item(
+                html, self._site_path/lang/page_, start, end, card, page)
 
             if doc.startswith('*'):
                 single_page = True
@@ -325,18 +321,9 @@ class SetPages(object):
                     continue
                 num += 1
 
-                doc_name = inode.replace('.docx', '.html')
-                doc_name = self._normalized_name(doc_name, '.html')
                 html = DocxHTML(self._docs_path/lang/page/categ/inode)
-                html = self._html_formatted_content(html, start, end, page)
-                html.save(self._site_path/lang/page_/categ_/doc_name)
-
-                if not html.cover_src: html.cover_src = self._blank_img
-                content += card.replace(
-                    '#title', html.title_text).replace(
-                    '#link', doc_name).replace(
-                    '#img_src', html.cover_src).replace(
-                    '#img_noise', self._noise_img)
+                content += self._set_html_and_index_item(html,
+                    self._site_path/lang/page_/categ_, start, end, card, page)
 
                 if inode.startswith('*'):
                     single_page = True
