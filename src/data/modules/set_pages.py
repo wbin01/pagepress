@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import re
-import os
 import hashlib
 import locale
 import shutil
@@ -116,10 +115,10 @@ class SetPages(object):
 
     def _langs_code(self) -> list:
         langs = []
-        for lang_dir in os.listdir(self._docs_path):
-            if os.path.isdir(self._docs_path/lang_dir):
-                if os.listdir(self._docs_path/lang_dir):
-                    langs.append(lang_dir)
+        for path in self._docs_path.iterdir():
+            if path.is_dir():
+                if any(path.iterdir()):
+                    langs.append(path.name)
 
         if not langs:
             langs.append(self._default_lang)
@@ -183,8 +182,8 @@ class SetPages(object):
                 start, end = f.read().split('<!-- CONTENT -->')
 
             pages, content, num, single_page = [], '', 0, False
-            for inode in self._sorted(os.listdir(self._docs_path/lang)):
-                if os.path.isfile(self._docs_path/lang/inode):
+            for inode in self._sorted(self._docs_path/lang):
+                if (self._docs_path/lang/inode).is_file():
                     if single_page or not inode.endswith('.docx'):
                         continue
                     num += 1
@@ -232,23 +231,23 @@ class SetPages(object):
         with open(self._html_path/'categ.html', 'r') as f:
             categ_card = f.read()
 
-        dirs, files = [], []
-        for inode in os.listdir(self._docs_path/lang/page):
-            if os.path.isfile(self._docs_path/lang/page/inode):
-                if inode.endswith('.docx'): files.append(inode)
+        dirs, docs = [], []
+        for path in (self._docs_path/lang/page).iterdir():
+            if path.is_file():
+                if path.name.endswith('.docx'): docs.append(path.name)
             else:
-                dirs.append(inode)
+                dirs.append(path.name)
 
         if dirs:
             content += '<div class="m-5"> </div>\n'
-            for num, inode in enumerate(self._sorted(dirs, True)):
-                inode_ = self._normalized_name(inode)
+            for num, categ in enumerate(self._sorted(dirs, True)):
+                inode_ = self._normalized_name(categ)
                 padding = 'pe-4 ps-2'
                 if num % 2 == 0:
                     padding = 'ps-4 pe-2'
                     content += '<div class="row m-0 p-0">\n'
 
-                categ_name = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', inode.upper())
+                categ_name = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', categ.upper())
                 content += categ_card.replace(
                     '#title', categ_name).replace(
                     '#link', inode_ + '/index.html').replace(
@@ -261,16 +260,16 @@ class SetPages(object):
                 
                 index_path = self._site_path/lang/page_/inode_/'index.html'
                 index_path.parent.mkdir(parents=True, exist_ok=True)
-                self._set_index_content_4_sub_categs(lang, page, inode, card)
+                self._set_index_content_4_sub_categs(lang, page, categ, card)
 
         pages, num, single_page = [], 0, False
-        for inode in self._sorted(files):
+        for doc in self._sorted(docs):
             if single_page: continue
 
             num += 1
-            doc_name = inode.replace('.docx', '.html')
+            doc_name = doc.replace('.docx', '.html')
             doc_name = self._normalized_name(doc_name, '.html')
-            html = DocxHTML(self._docs_path/lang/page/inode)
+            html = DocxHTML(self._docs_path/lang/page/doc)
             html = self._html_formatted_content(html, start, end, page)
             html.save(self._site_path/lang/page_/doc_name)
 
@@ -281,7 +280,7 @@ class SetPages(object):
                 '#img_src', html.cover_src).replace(
                 '#img_noise', self._noise_img)
 
-            if inode.startswith('*'):
+            if doc.startswith('*'):
                 single_page = True
                 html.save(self._site_path/lang/page_/'index.html')
 
@@ -311,8 +310,8 @@ class SetPages(object):
         html = self._update_nav_links(lang, html, 'SUB-CATEG')
         start, end = html.split('<!-- CONTENT -->')
 
-        items = os.listdir(self._docs_path/lang/page/categ)
-        if not items:
+        items = self._docs_path/lang/page/categ
+        if not any(items.iterdir()):
             with open(self._site_path/lang/page_/categ_/'index.html','w') as f:
                 start = self._set_active_nav_item(page, start)
                 f.write(f'{start}{content}{end}')
@@ -320,7 +319,7 @@ class SetPages(object):
 
         pages, content, num, single_page = [], '', 0, False
         for inode in self._sorted(items):
-            if os.path.isfile(self._docs_path/lang/page/categ/inode):
+            if (items/inode).is_file():
                 if single_page: break
                 if not inode.endswith('.docx'):
                     continue
@@ -387,10 +386,10 @@ class SetPages(object):
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 index = file_.read()
 
-            li_itens = ''
-            for node in self._sorted(os.listdir(self._docs_path/lang), True):
+            li_itens, langs = '', self._docs_path/lang
+            for node in self._sorted(langs, True):
                 node_ = self._normalized_name(node)
-                if os.path.isdir(self._docs_path/lang/node):
+                if (langs/node).is_dir():
                     li_itens += """
                         <li class="nav-item m-0 p-0">
                          <a {} {} href="{}/index.html">{}</a>
@@ -411,10 +410,10 @@ class SetPages(object):
                 html = file_.read()
 
             html = self._update_nav_links(lang, html, 'CATEG')
-            for inode in os.listdir(self._docs_path/lang):
-                inode_ = self._normalized_name(inode)
-                if os.path.isdir(self._docs_path/lang/inode):
-                    path = self._site_path/lang/inode_/'index.html'
+            for path in (self._docs_path/lang).iterdir():
+                categ = self._normalized_name(path.name)
+                if path.is_dir():
+                    path = self._site_path/lang/categ/'index.html'
                     path.parent.mkdir(parents=True, exist_ok=True)
 
                     with open(path, 'w') as file_:
@@ -512,9 +511,13 @@ class SetPages(object):
         html += control
         return html
 
-    def _sorted(self, str_list: list, is_dirs: bool = False) -> list:
+    def _sorted(self, str_list: list | Path, is_dirs: bool = False) -> list:
+        if isinstance(str_list, Path):
+            str_list = [x.name for x in str_list.iterdir()]
+        
         alphas, ints = [], []
         for item in str_list:
+            
             item = item.strip()
 
             num = re.findall(r'^\d+\.\d|^\d+', item)
@@ -555,12 +558,12 @@ class SetPages(object):
                 f"""changeLang('{l}')" href="{langs_next}{l}/index.html">""")
 
         # Pages link
-        for i in os.listdir(self._docs_path/lang):
-            if os.path.isdir(self._docs_path/lang/i):
-                i_ = self._normalized_name(i)
+        for path in (self._docs_path/lang).iterdir():
+            if path.is_dir():
+                page_name = self._normalized_name(path.name)
                 html = html.replace(
-                    f'href="{pages_prev}{i_}/index.html"',
-                    f'href="{pages_next}{i_}/index.html"')
+                    f'href="{pages_prev}{page_name}/index.html"',
+                    f'href="{pages_next}{page_name}/index.html"')
         return html
 
 
