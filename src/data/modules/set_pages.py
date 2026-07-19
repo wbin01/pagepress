@@ -365,6 +365,8 @@ class SetPages(object):
                 self._conf('Post:DarkTheme', 'subtitle_color'))
 
     def _set_nav_items(self) -> None:
+        a = '<a aria-current="page" class="m-0 mx-2 p-0 nav-link" #>*</a>'
+        li = f'<li class="nav-item m-0 p-0">{a}</li>'
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 index = file_.read()
@@ -373,15 +375,9 @@ class SetPages(object):
             for node in self._sorted(langs, True):
                 node_ = self._normalized_name(node)
                 if (langs/node).is_dir():
-                    li_itens += """
-                        <li class="nav-item m-0 p-0">
-                         <a {} {} href="{}/index.html">{}</a>
-                        </li>
-                        """.replace(' '*24, ' '*5).format(
-                            'aria-current="page"',
-                            'class="m-0 mx-2 p-0 nav-link"',
-                            node_,
-                            re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', node))
+                    li_itens += li.replace(
+                        '#', f'href="{node_}/index.html"').replace(
+                        '*', re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', node))
 
             new_index = index.replace('<!-- NAV ITEM -->', li_itens)
             with open(self._site_path/lang/'index.html', 'w+') as f:
