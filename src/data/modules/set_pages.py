@@ -319,17 +319,9 @@ class SetPages(object):
         html = self._update_nav_links(lang, html, 'SUB-CATEG')
         start, end = html.split('<!-- CONTENT -->')
 
-        # path = self._docs_path/lang/page/categ
-        # single = [x for x in path.iterdir() if x.name.startswith('*')]
-        # if single:
-        #     html = DocxHTML(single[0])
-        #     self._set_html_page_item(html,
-        #         self._site_path/lang/page_/categ_, start, end, '', '', True)
-        #     return
         if self._set_single_page(doc_path, site_path, start, end):
             return
 
-        # items = self._docs_path/lang/page/categ
         if not any(doc_path.iterdir()):
             with open(site_path/'index.html','w') as f:
                 start = self._set_active_nav_item(page, start)
