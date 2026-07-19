@@ -90,43 +90,6 @@ class SetPages(object):
             html = file_.read()
         return html.split('<!-- / -->')
 
-    def _set_html_and_index_item(
-            self, html: DocxHTML, site_path: PATH, start: str, end: str,
-            card: str, page: str = '') -> str:
-
-        with open(self._html_path/'cover.html', 'r') as f:
-            cover = f.read().replace('#image', self._noise_img)
-            cover, cover_alt = cover.split('<!-- / -->')
-
-        with open(self._html_path/'title.html', 'r') as f:
-            title, title_alt = f.read().split('<!-- / -->')
-        
-        if not html.cover:
-            cover = cover_alt
-            title = title_alt
-
-        if page:
-            start = self._set_active_nav_item(page, start)
-        
-        html.start = start
-        html.cover = cover.replace('#img', html.cover_src)
-        html.title = title.replace('#title', html.title_text)
-        html.end = end
-
-        doc_name = html.path.name.replace('.docx', '.html')
-        doc_name = self._normalized_name(doc_name, '.html')
-        p = Path(self._site_path)
-        html.save(site_path/doc_name)
-
-        if not html.cover_src: html.cover_src = self._blank_img
-        content = card.replace(
-            '#title', html.title_text).replace(
-            '#link', doc_name).replace(
-            '#img_src', html.cover_src).replace(
-            '#img_noise', self._noise_img)
-
-        return content
-
     def _langs_code(self) -> list:
         langs = []
         for path in self._docs_path.iterdir():
@@ -187,6 +150,43 @@ class SetPages(object):
                 link[0], link[0].replace(' nav-link', ' nav-link active'))
         return html
 
+    def _set_html_page_item(
+            self, html: DocxHTML, site_path: PATH, start: str, end: str,
+            card: str, page: str = '') -> str:
+
+        with open(self._html_path/'cover.html', 'r') as f:
+            cover = f.read().replace('#image', self._noise_img)
+            cover, cover_alt = cover.split('<!-- / -->')
+
+        with open(self._html_path/'title.html', 'r') as f:
+            title, title_alt = f.read().split('<!-- / -->')
+        
+        if not html.cover:
+            cover = cover_alt
+            title = title_alt
+
+        if page:
+            start = self._set_active_nav_item(page, start)
+        
+        html.start = start
+        html.cover = cover.replace('#img', html.cover_src)
+        html.title = title.replace('#title', html.title_text)
+        html.end = end
+
+        doc_name = html.path.name.replace('.docx', '.html')
+        doc_name = self._normalized_name(doc_name, '.html')
+        p = Path(self._site_path)
+        html.save(site_path/doc_name)
+
+        if not html.cover_src: html.cover_src = self._blank_img
+        content = card.replace(
+            '#title', html.title_text).replace(
+            '#link', doc_name).replace(
+            '#img_src', html.cover_src).replace(
+            '#img_noise', self._noise_img)
+
+        return content
+
     def _set_indexes_content(self) -> None:
         with open(self._html_path/'card.html', 'r') as f:
             card = f.read()
@@ -201,9 +201,9 @@ class SetPages(object):
                     if single_page or not inode.endswith('.docx'):
                         continue
                     num += 1
-                    
+
                     html = DocxHTML(self._docs_path/lang/inode)
-                    content += self._set_html_and_index_item(
+                    content += self._set_html_page_item(
                         html, self._site_path/lang, start, end, card)
 
                     if inode.startswith('*'):
@@ -273,7 +273,7 @@ class SetPages(object):
 
             num += 1
             html = DocxHTML(self._docs_path/lang/page/doc)
-            content += self._set_html_and_index_item(
+            content += self._set_html_page_item(
                 html, self._site_path/lang/page_, start, end, card, page)
 
             if doc.startswith('*'):
@@ -322,7 +322,7 @@ class SetPages(object):
                 num += 1
 
                 html = DocxHTML(self._docs_path/lang/page/categ/inode)
-                content += self._set_html_and_index_item(html,
+                content += self._set_html_page_item(html,
                     self._site_path/lang/page_/categ_, start, end, card, page)
 
                 if inode.startswith('*'):
@@ -357,15 +357,11 @@ class SetPages(object):
         self._html_top = self._html_top.replace(
             '#brand', logo).replace(
                 '#favicon', (PATH/self._conf('Brand', 'favicon')).as_posix()
-            ).replace(
-                '<!-- TAB TITLE-->', self._conf('Brand', 'name')
-            ).replace(
-                '<!-- PAGE NAME -->', name
-            ).replace(
-                '#LightSubtitleColor',
+            ).replace('<!-- TAB TITLE-->', self._conf('Brand', 'name')
+            ).replace('<!-- PAGE NAME -->', name
+            ).replace('#LightSubtitleColor',
                 self._conf('Post:LightTheme', 'subtitle_color')
-            ).replace(
-                '#DarkSubtitleColor',
+            ).replace('#DarkSubtitleColor',
                 self._conf('Post:DarkTheme', 'subtitle_color'))
 
     def _set_nav_items(self) -> None:
