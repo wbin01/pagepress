@@ -43,6 +43,7 @@ class SetPages(object):
         self._conf_page = ConfFile(self._data_path/'page.conf')
 
         self._icon_close = SvgIconToHTML('close').html
+        self._icon_tag = SvgIconToHTML('tag').html
         self._name_chars = string.ascii_lowercase + string.digits
         self._items_per_page = 3
 
@@ -151,7 +152,7 @@ class SetPages(object):
         return new_name.replace('--', '-') + ext
 
     def _set_active_nav_item(self, page: str, html: str) -> str:
-        page = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', page)
+        page = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', page.split('/')[0])
         link = re.findall(rf' nav-link\" href=\"[^\"]*\">{page}', html)
         if link:
             html = html.replace(
@@ -160,7 +161,7 @@ class SetPages(object):
 
     def _set_html_item(
             self, html: DocxHTML, site_path: PATH, start: str, end: str,
-            single: bool = False) -> str:
+            page: str = '', single: bool = False) -> str:
 
         with open(self._html_path/'cover.html', 'r') as f:
             cover = f.read().replace('#image', self._noise_img)
@@ -172,6 +173,19 @@ class SetPages(object):
         if not html.cover:
             cover = cover_alt
             title = title_alt
+
+        if page:
+            start = self._set_active_nav_item(page, start)
+            
+            cl = (
+                'border border-outline-secondary border-opacity-50 '
+                'm-0 mx-1 p-0 pe-1 ps-2 rounded-end-4 '
+                'text-body text-opacity-50 text-uppercase')
+
+            if '/' in page:
+                sub = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', page.split('/')[1])
+                page = f'<small><small><span class="{cl}">{sub}</span></small>'
+                cover = cover.replace('<!-- LABEL -->', page + '</small>')
         
         html.start = start
         html.cover = cover.replace('#img', html.cover_src)
@@ -271,7 +285,7 @@ class SetPages(object):
         with open(self._html_path/'categ.html', 'r') as f:
             categ_card = f.read()
 
-        if self._set_single_page(doc_path, site_path, start, end):
+        if self._set_single_page(doc_path, site_path, start, end, page):
             return
 
         dirs, docs = [], []
@@ -308,7 +322,7 @@ class SetPages(object):
         pages, num, items = [], 0, []
         for doc in self._sorted(docs):
             html = DocxHTML(doc_path/doc)
-            item = self._set_html_item(html, site_path, start, end)
+            item = self._set_html_item(html, site_path, start, end, page)
             items.append((html.path, item))
             content += item
 
@@ -343,7 +357,7 @@ class SetPages(object):
         html = self._update_nav_links(lang, html, 'SUB-CATEG')
         start, end = html.split('<!-- CONTENT -->')
 
-        if self._set_single_page(doc_path, site_path, start, end):
+        if self._set_single_page(doc_path, site_path, start, end, page):
             return
 
         if not any(doc_path.iterdir()):
@@ -359,7 +373,8 @@ class SetPages(object):
                     continue
                 
                 html = DocxHTML(doc_path/inode)
-                item = self._set_html_item(html, site_path, start, end)
+                item = self._set_html_item(
+                    html, site_path, start, end, f'{page}/{categ}')
                 items.append((html.path, item))
                 content += item
 
@@ -521,11 +536,13 @@ class SetPages(object):
         html += control
         return html
 
-    def _set_single_page(self, doc_path, site_path, start, end) -> bool:
+    def _set_single_page(
+            self, doc_path: PATH, site_path: PATH, start: str, end: str,
+            page: str = '') -> bool:
         single = [x for x in doc_path.iterdir() if x.name.startswith('*')]
         if single:
             html = DocxHTML(single[0])
-            self._set_html_item(html, site_path, start, end, True)
+            self._set_html_item(html, site_path, start, end, page, True)
         return single
 
     def _sorted(self, str_list: list | Path, is_dirs: bool = False) -> list:
