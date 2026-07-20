@@ -179,13 +179,20 @@ class SetPages(object):
             
             cl = (
                 'border border-outline-secondary border-opacity-50 '
-                'm-0 mx-1 p-0 pe-1 ps-2 rounded-end-4 '
-                'text-body text-opacity-50 text-uppercase')
+                'text-body text-opacity-25 text-uppercase p-0 pe-1 ps-2 '
+                'm-0 me-1 rounded-end-4')
 
             if '/' in page:
-                sub = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', page.split('/')[1])
-                page = f'<small><small><span class="{cl}">{sub}</span></small>'
-                cover = cover.replace('<!-- LABEL -->', page + '</small>')
+                categ, sub = page.split('/')
+                categ = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', categ)
+                sub = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', sub)
+                page = f'<small><span class="{cl}">{categ}</span></small>'
+                page += f'<small><span class="{cl}">{sub}</span></small>'
+                cover = cover.replace('<!-- LABEL -->', page)
+            else:
+                categ = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', page)
+                page = f'<small><span class="{cl}">{categ}</span></small>'
+                cover = cover.replace('<!-- LABEL -->', page)
         
         html.start = start
         html.cover = cover.replace('#img', html.cover_src)
