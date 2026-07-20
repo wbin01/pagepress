@@ -176,24 +176,19 @@ class SetPages(object):
 
         if page:
             start = self._set_active_nav_item(page, start)
-            
-            cl = (
-                'border border-outline-secondary border-opacity-50 '
-                'text-body text-opacity-25 text-uppercase p-0 pe-1 ps-2 '
-                'm-0 me-1 rounded-end-4')
-
+            span, span_end, rg, pages = (
+                '<small><span class="border border-outline-secondary '
+                'border-opacity-50 text-body text-opacity-25 text-uppercase '
+                'p-0 pe-1 ps-2 m-0 me-1 rounded-end-4">', '</span></small>',
+                r'^\d+ +-|^\d+-|^\d+ ', page.split('/'))
             if '/' in page:
-                categ, sub = page.split('/')
-                categ = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', categ)
-                sub = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', sub)
-                page = f'<small><span class="{cl}">{categ}</span></small>'
-                page += f'<small><span class="{cl}">{sub}</span></small>'
-                cover = cover.replace('<!-- LABEL -->', page)
+                categ, sub = re.sub(rg, '', pages[0]), re.sub(rg, '', pages[1])
+                page = f'{span}{categ}{span_end}{span}{sub}{span_end}'
             else:
-                categ = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', page)
-                page = f'<small><span class="{cl}">{categ}</span></small>'
-                cover = cover.replace('<!-- LABEL -->', page)
+                categ = re.sub(rg, '', page)
+                page = f'{span}{categ}{span_end}'
         
+        cover = cover.replace('<!-- LABEL -->', page)
         html.start = start
         html.cover = cover.replace('#img', html.cover_src)
         html.title = title.replace('#title', html.title_text)
@@ -223,6 +218,7 @@ class SetPages(object):
         for lang in self._langs:
             self._all_docs[lang] = []
 
+        # Items
         for lang in self._langs:
             doc_path = self._docs_path/lang
             site_path = self._site_path/lang
@@ -231,26 +227,33 @@ class SetPages(object):
                 start, end = f.read().split('<!-- CONTENT -->')
             single = self._set_single_page(doc_path, site_path, start, end)
 
-            pages, content, num, items = [], '', 0, []
+            items = []
             for inode in self._sorted(doc_path):
                 if (doc_path/inode).is_file():
                     if single or not inode.endswith('.docx'):
                         continue
-                    
                     html = DocxHTML(doc_path/inode)
                     item = self._set_html_item(html, site_path, start, end)
                     items.append((html.path, item))
-                    content += item
-
-                    num += 1
-                    if num == self._items_per_page:
-                        pages.append(content)
-                        content, num = '', 0
                 else:
                     self._set_index_content_4_categs(lang, inode, card)
+            self._all_docs[lang].extend(items)
 
-            if single: continue
-            if content and content not in pages: pages.append(content)
+        # INDEX
+        if single: return
+        for lang in self._langs:
+            pages, content, num = [], '', 0
+            for doc in self._all_docs[lang]:
+                content += doc[1]
+
+                num += 1
+                if num == self._items_per_page:
+                    pages.append(content)
+                    content, num = '', 0
+
+            if content and content not in pages:
+                pages.append(content)
+
             for num, content in enumerate(pages):
                 num += 1
                 content = self._set_pagination(content, num, len(pages))
@@ -258,24 +261,6 @@ class SetPages(object):
                 if num == 1: num = ''
                 with open(self._site_path/lang/f'index{num}.html', 'w+') as f:
                     f.write(f'{start}{content}{end}')
-
-            self._all_docs[lang].extend(items)
-
-            # INDEX
-            new_docs = []
-            old_docs = []
-            for doc in self._all_docs[lang]:
-                self._all_doc_paths.append(doc[0])
-
-                if doc[0] not in self._all_last_doc_paths:
-                    new_docs.append(doc)
-                else:
-                    old_docs.append(doc)
-
-            new_docs.extend(old_docs)
-            for doc in new_docs:
-                # print(doc[0])
-                pass
 
         self._all_last_doc_paths = self._all_doc_paths
 
