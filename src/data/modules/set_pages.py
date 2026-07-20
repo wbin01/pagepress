@@ -174,21 +174,22 @@ class SetPages(object):
             cover = cover_alt
             title = title_alt
 
-        if page:
-            start = self._set_active_nav_item(page, start)
+        page_ = page
+        if page_:
+            start = self._set_active_nav_item(page_, start)
             span, span_end, rg, pages = (
                 '<small><span class="border border-outline-secondary '
                 'border-opacity-50 text-body text-opacity-25 text-uppercase '
                 'p-0 pe-1 ps-2 m-0 me-1 rounded-end-4">', '</span></small>',
-                r'^\d+ +-|^\d+-|^\d+ ', page.split('/'))
-            if '/' in page:
+                r'^\d+ +-|^\d+-|^\d+ ', page_.split('/'))
+            if '/' in page_:
                 categ, sub = re.sub(rg, '', pages[0]), re.sub(rg, '', pages[1])
-                page = f'{span}{categ}{span_end}{span}{sub}{span_end}'
+                page_ = f'{span}{categ}{span_end}{span}{sub}{span_end}'
             else:
-                categ = re.sub(rg, '', page)
-                page = f'{span}{categ}{span_end}'
+                categ = re.sub(rg, '', page_)
+                page_ = f'{span}{categ}{span_end}'
         
-        cover = cover.replace('<!-- LABEL -->', page)
+        cover = cover.replace('<!-- LABEL -->', page_)
         html.start = start
         html.cover = cover.replace('#img', html.cover_src)
         html.title = title.replace('#title', html.title_text)
@@ -209,7 +210,13 @@ class SetPages(object):
             '#img_src', html.cover_src).replace(
             '#img_noise', self._noise_img)
 
-        return content
+        link = site_path.as_posix().replace(self._site_path.as_posix(), '')[1:]
+        html.card = content
+        html.categ = page
+        html.name = doc_name
+        html.link = link.split('/', maxsplit=1)[1]
+
+        return html
 
     def _set_indexes_content(self) -> None:
         with open(self._html_path/'card.html', 'r') as f:
@@ -233,8 +240,8 @@ class SetPages(object):
                     if single or not inode.endswith('.docx'):
                         continue
                     html = DocxHTML(doc_path/inode)
-                    item = self._set_html_item(html, site_path, start, end)
-                    items.append((html.path, item))
+                    html = self._set_html_item(html, site_path, start, end)
+                    items.append(html)
                 else:
                     self._set_index_content_4_categs(lang, inode, card)
             self._all_docs[lang].extend(items)
@@ -243,8 +250,12 @@ class SetPages(object):
         if single: return
         for lang in self._langs:
             pages, content, num = [], '', 0
-            for doc in self._all_docs[lang]:
-                content += doc[1]
+            for html in self._all_docs[lang]:
+                card = html.card
+                card = card.replace(
+                    f'<a class="text-decoration-none" href="{html.name}">',
+                    f'<a class="text-decoration-none" href="{html.link}">')
+                content += card
 
                 num += 1
                 if num == self._items_per_page:
@@ -314,9 +325,9 @@ class SetPages(object):
         pages, num, items = [], 0, []
         for doc in self._sorted(docs):
             html = DocxHTML(doc_path/doc)
-            item = self._set_html_item(html, site_path, start, end, page)
-            items.append((html.path, item))
-            content += item
+            html = self._set_html_item(html, site_path, start, end, page)
+            items.append(html)
+            content += html.card
 
             num += 1
             if num == self._items_per_page:
@@ -365,10 +376,10 @@ class SetPages(object):
                     continue
                 
                 html = DocxHTML(doc_path/inode)
-                item = self._set_html_item(
+                html = self._set_html_item(
                     html, site_path, start, end, f'{page}/{categ}')
-                items.append((html.path, item))
-                content += item
+                items.append(html)
+                content += html.card
 
                 num += 1
                 if num == self._items_per_page:
