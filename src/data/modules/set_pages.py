@@ -250,8 +250,9 @@ class SetPages(object):
         # INDEX
         if single: return
         for lang in self._langs:
+            
             pages, content, num = [], '', 0
-            for html in self._all_docs[lang]:
+            for html in self._set_index_items_list(lang):
                 content += self._set_index_card(html)
 
                 num += 1
@@ -274,8 +275,8 @@ class SetPages(object):
 
     def _set_index_card(self, html) -> str:
         s, e, c, r = (
-            '<small><span class="border border-light border-opacity-50 '
-            'text-light text-opacity-50 text-uppercase bg-dark bg-opacity-50 '
+            '<small><span class="border border-light border-opacity-25 fw-light'
+            ' text-light text-opacity-50 text-uppercase bg-dark bg-opacity-75 '
             'p-0 pe-1 ps-2 m-0 me-1 rounded-end-4">', '</span></small>',
             'class="position-absolute top-0 start-0 p-0 m-0 ms-1"',
             r'^\d+ +-|^\d+-|^\d+ ')
@@ -295,6 +296,32 @@ class SetPages(object):
             ).replace('<!-- card title -->', categ)
 
         return card
+
+    def _set_index_items_list(self, lang) -> list:
+        data_paths = self._data_path/f'{lang}-paths.txt'
+        if not data_paths.is_file():
+            with open(data_paths, 'w+') as f: f.write('')
+
+        with open(data_paths, 'r') as f:
+            all_last_doc_paths = f.read().split('\n')
+
+        news, olds = [], []
+        for html in self._all_docs[lang]:
+            if html.path.as_posix() in all_last_doc_paths:
+                olds.append(html)
+            else:
+                news.append(html)
+
+        lasts = []
+        for item in all_last_doc_paths:
+            for x in olds:
+                if x.path.as_posix() == item: lasts.append(x)
+
+        news.extend(lasts)
+        with open(data_paths, 'w+') as f:
+            f.write('\n'.join([x.path.as_posix() for x in news]))
+
+        return news
 
     def _set_index_content_4_categs(
             self, lang: str, page: str, card: str) -> None:
