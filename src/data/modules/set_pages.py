@@ -151,6 +151,7 @@ class SetPages(object):
         return new_name.replace('--', '-') + ext
 
     def _set_active_nav_item(self, page: str, html: str) -> str:
+        page = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', page)
         link = re.findall(rf' nav-link\" href=\"[^\"]*\">{page}', html)
         if link:
             html = html.replace(
@@ -159,7 +160,7 @@ class SetPages(object):
 
     def _set_html_item(
             self, html: DocxHTML, site_path: PATH, start: str, end: str,
-            page: str = '', single: bool = False) -> str:
+            single: bool = False) -> str:
 
         with open(self._html_path/'cover.html', 'r') as f:
             cover = f.read().replace('#image', self._noise_img)
@@ -171,9 +172,6 @@ class SetPages(object):
         if not html.cover:
             cover = cover_alt
             title = title_alt
-
-        if page:
-            start = self._set_active_nav_item(page, start)
         
         html.start = start
         html.cover = cover.replace('#img', html.cover_src)
@@ -255,7 +253,8 @@ class SetPages(object):
 
             new_docs.extend(old_docs)
             for doc in new_docs:
-                print(doc[0])
+                # print(doc[0])
+                pass
 
         self._all_last_doc_paths = self._all_doc_paths
 
@@ -309,7 +308,7 @@ class SetPages(object):
         pages, num, items = [], 0, []
         for doc in self._sorted(docs):
             html = DocxHTML(doc_path/doc)
-            item = self._set_html_item(html, site_path, start, end, page)
+            item = self._set_html_item(html, site_path, start, end)
             items.append((html.path, item))
             content += item
 
@@ -360,7 +359,7 @@ class SetPages(object):
                     continue
                 
                 html = DocxHTML(doc_path/inode)
-                item = self._set_html_item(html, site_path,start,end, page)
+                item = self._set_html_item(html, site_path, start, end)
                 items.append((html.path, item))
                 content += item
 
@@ -398,7 +397,7 @@ class SetPages(object):
 
     def _set_nav_items(self) -> None:
         a = '<a aria-current="page" class="m-0 mx-2 p-0 nav-link" #>*</a>'
-        li = f'<li class="nav-item m-0 p-0">{a}</li>'
+        li = f'<li class="nav-item m-0 p-0">{a}</li>\n     '
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 index = file_.read()
@@ -411,7 +410,7 @@ class SetPages(object):
                         '#', f'href="{node_}/index.html"').replace(
                         '*', re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', node))
 
-            new_index = index.replace('<!-- NAV ITEM -->', li_itens)
+            new_index = index.replace('<!-- NAV ITEM -->', li_itens.strip())
             with open(self._site_path/lang/'index.html', 'w+') as f:
                 f.write(new_index)
 
@@ -526,7 +525,7 @@ class SetPages(object):
         single = [x for x in doc_path.iterdir() if x.name.startswith('*')]
         if single:
             html = DocxHTML(single[0])
-            self._set_html_item(html, site_path, start, end, '', True)
+            self._set_html_item(html, site_path, start, end, True)
         return single
 
     def _sorted(self, str_list: list | Path, is_dirs: bool = False) -> list:
