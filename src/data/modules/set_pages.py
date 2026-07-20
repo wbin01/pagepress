@@ -151,9 +151,9 @@ class SetPages(object):
 
         return new_name.replace('--', '-') + ext
 
-    def _set_active_nav_item(self, page: str, html: str) -> str:
-        page = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', page.split('/')[0])
-        link = re.findall(rf' nav-link\" href=\"[^\"]*\">{page}', html)
+    def _set_active_nav_item(self, categ: list, html: str) -> str:
+        categ = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', categ[0])
+        link = re.findall(rf' nav-link\" href=\"[^\"]*\">{categ}', html)
         if link:
             html = html.replace(
                 link[0], link[0].replace(' nav-link', ' nav-link active'))
@@ -161,7 +161,7 @@ class SetPages(object):
 
     def _set_html_item(
             self, html: DocxHTML, site_path: PATH, start: str, end: str,
-            page: str = '', single: bool = False) -> str:
+            categ: list = [], single: bool = False) -> str:
 
         with open(self._html_path/'cover.html', 'r') as f:
             cover = f.read().replace('#image', self._noise_img)
@@ -174,22 +174,21 @@ class SetPages(object):
             cover = cover_alt
             title = title_alt
 
-        page_ = page
-        if page_:
-            start = self._set_active_nav_item(page_, start)
-            span, span_end, rg, pages = (
+        categs = ''
+        if categ:
+            start = self._set_active_nav_item(categ, start)
+            span, span_end, rg = (
                 '<small><span class="border border-outline-secondary '
                 'border-opacity-50 text-body text-opacity-25 text-uppercase '
                 'p-0 pe-1 ps-2 m-0 me-1 rounded-end-4">', '</span></small>',
-                r'^\d+ +-|^\d+-|^\d+ ', page_.split('/'))
-            if '/' in page_:
-                categ, sub = re.sub(rg, '', pages[0]), re.sub(rg, '', pages[1])
-                page_ = f'{span}{categ}{span_end}{span}{sub}{span_end}'
+                r'^\d+ +-|^\d+-|^\d+ ')
+            if len(categ) == 2:
+                c, s = re.sub(rg, '', categ[0]), re.sub(rg, '', categ[1])
+                categs = f'{span}{c}{span_end}{span}{s}{span_end}'
             else:
-                categ = re.sub(rg, '', page_)
-                page_ = f'{span}{categ}{span_end}'
+                categs = f'{span}{re.sub(rg, '', categ[0])}{span_end}'
         
-        cover = cover.replace('<!-- LABEL -->', page_)
+        cover = cover.replace('<!-- LABEL -->', categs)
         html.start = start
         html.cover = cover.replace('#img', html.cover_src)
         html.title = title.replace('#title', html.title_text)
@@ -205,6 +204,7 @@ class SetPages(object):
 
         if not html.cover_src: html.cover_src = self._blank_img
         content = self._card.replace(
+            '#categs', categs).replace(
             '#title', html.title_text).replace(
             '#link', doc_name).replace(
             '#img_src', html.cover_src).replace(
@@ -212,7 +212,8 @@ class SetPages(object):
 
         link = site_path.as_posix().replace(self._site_path.as_posix(), '')[1:]
         html.card = content
-        html.categ = page
+        html.categ = categ
+        html.categs = categs
         html.name = doc_name
         html.link = link.split('/', maxsplit=1)[1]
 
@@ -251,11 +252,7 @@ class SetPages(object):
         for lang in self._langs:
             pages, content, num = [], '', 0
             for html in self._all_docs[lang]:
-                card = html.card
-                card = card.replace(
-                    f'<a class="text-decoration-none" href="{html.name}">',
-                    f'<a class="text-decoration-none" href="{html.link}">')
-                content += card
+                content += self._set_index_card(html)
 
                 num += 1
                 if num == self._items_per_page:
@@ -274,6 +271,30 @@ class SetPages(object):
                     f.write(f'{start}{content}{end}')
 
         self._all_last_doc_paths = self._all_doc_paths
+
+    def _set_index_card(self, html) -> str:
+        s, e, c, r = (
+            '<small><span class="border border-light border-opacity-50 '
+            'text-light text-opacity-50 text-uppercase bg-dark bg-opacity-50 '
+            'p-0 pe-1 ps-2 m-0 me-1 rounded-end-4">', '</span></small>',
+            'class="position-absolute top-0 start-0 p-0 m-0 ms-1"',
+            r'^\d+ +-|^\d+-|^\d+ ')
+        categ = ''
+        if html.categ and html.categ[0]:
+            r0 = re.sub(r, '', html.categ[0])
+            categ = f'<div {c}>{s}{r0}{e}</div>'
+
+            if len(html.categ) == 2:
+                r1 = re.sub(r, '', html.categ[1])
+                categ = f'<div {c}>{s}{r0}{e}{s}{r1}{e}</div>'
+
+        card = html.card
+        card = card.replace(
+            f'<a class="text-decoration-none" href="{html.name}">',
+            f'<a class="text-decoration-none" href="{html.link}">'
+            ).replace('<!-- card title -->', categ)
+
+        return card
 
     def _set_index_content_4_categs(
             self, lang: str, page: str, card: str) -> None:
@@ -325,7 +346,7 @@ class SetPages(object):
         pages, num, items = [], 0, []
         for doc in self._sorted(docs):
             html = DocxHTML(doc_path/doc)
-            html = self._set_html_item(html, site_path, start, end, page)
+            html = self._set_html_item(html, site_path, start, end, [page])
             items.append(html)
             content += html.card
 
@@ -341,7 +362,7 @@ class SetPages(object):
 
             if num == 1: num = ''
             with open(site_path/f'index{num}.html', 'w') as f:
-                start = self._set_active_nav_item(page, start)
+                start = self._set_active_nav_item([page], start)
                 f.write(f'{start}{content}{end}')
 
         self._all_docs[lang].extend(items)
@@ -365,7 +386,7 @@ class SetPages(object):
 
         if not any(doc_path.iterdir()):
             with open(site_path/'index.html','w') as f:
-                start = self._set_active_nav_item(page, start)
+                start = self._set_active_nav_item([page], start)
                 f.write(f'{start}{content}{end}')
                 return
 
@@ -377,7 +398,7 @@ class SetPages(object):
                 
                 html = DocxHTML(doc_path/inode)
                 html = self._set_html_item(
-                    html, site_path, start, end, f'{page}/{categ}')
+                    html, site_path, start, end, [page, categ])
                 items.append(html)
                 content += html.card
 
@@ -393,7 +414,7 @@ class SetPages(object):
 
             if num == 1: num = ''
             with open(site_path/f'index{num}.html', 'w') as f:
-                start = self._set_active_nav_item(page, start)
+                start = self._set_active_nav_item([page], start)
                 f.write(f'{start}{content}{end}')
 
         self._all_docs[lang].extend(items)
@@ -545,7 +566,7 @@ class SetPages(object):
         single = [x for x in doc_path.iterdir() if x.name.startswith('*')]
         if single:
             html = DocxHTML(single[0])
-            self._set_html_item(html, site_path, start, end, page, True)
+            self._set_html_item(html, site_path, start, end, [page], True)
         return single
 
     def _sorted(self, str_list: list | Path, is_dirs: bool = False) -> list:
