@@ -45,7 +45,10 @@ class SetPages(object):
         self._icon_close = SvgIconToHTML('close').html
         self._name_chars = string.ascii_lowercase + string.digits
         self._items_per_page = 3
-        self._all_items = []
+
+        self._all_last_doc_paths = []
+        self._all_doc_paths = []
+        self._all_docs = {}
 
         self._clear()
         self._set_nav_brand()
@@ -199,6 +202,9 @@ class SetPages(object):
             card = f.read()
 
         for lang in self._langs:
+            self._all_docs[lang] = []
+
+        for lang in self._langs:
             doc_path = self._docs_path/lang
             site_path = self._site_path/lang
 
@@ -206,14 +212,16 @@ class SetPages(object):
                 start, end = f.read().split('<!-- CONTENT -->')
             single = self._set_single_page(doc_path, site_path, start, end)
 
-            pages, content, num = [], '', 0
+            pages, content, num, items = [], '', 0, []
             for inode in self._sorted(doc_path):
                 if (doc_path/inode).is_file():
                     if single or not inode.endswith('.docx'):
                         continue
                     
                     html = DocxHTML(doc_path/inode)
-                    content += self._set_html_item(html, site_path, start, end)
+                    item = self._set_html_item(html, site_path, start, end)
+                    items.append((html.path, item))
+                    content += item
 
                     num += 1
                     if num == self._items_per_page:
@@ -231,6 +239,25 @@ class SetPages(object):
                 if num == 1: num = ''
                 with open(self._site_path/lang/f'index{num}.html', 'w+') as f:
                     f.write(f'{start}{content}{end}')
+
+            self._all_docs[lang].extend(items)
+
+            # INDEX
+            new_docs = []
+            old_docs = []
+            for doc in self._all_docs[lang]:
+                self._all_doc_paths.append(doc[0])
+
+                if doc[0] not in self._all_last_doc_paths:
+                    new_docs.append(doc)
+                else:
+                    old_docs.append(doc)
+
+            new_docs.extend(old_docs)
+            for doc in new_docs:
+                print(doc[0])
+
+        self._all_last_doc_paths = self._all_doc_paths
 
     def _set_index_content_4_categs(
             self, lang: str, page: str, card: str) -> None:
@@ -279,10 +306,12 @@ class SetPages(object):
                 index_path.parent.mkdir(parents=True, exist_ok=True)
                 self._set_index_content_4_sub_categs(lang, page, categ, card)
 
-        pages, num = [], 0
+        pages, num, items = [], 0, []
         for doc in self._sorted(docs):
             html = DocxHTML(doc_path/doc)
-            content += self._set_html_item(html, site_path, start, end, page)
+            item = self._set_html_item(html, site_path, start, end, page)
+            items.append((html.path, item))
+            content += item
 
             num += 1
             if num == self._items_per_page:
@@ -298,6 +327,8 @@ class SetPages(object):
             with open(site_path/f'index{num}.html', 'w') as f:
                 start = self._set_active_nav_item(page, start)
                 f.write(f'{start}{content}{end}')
+
+        self._all_docs[lang].extend(items)
 
     def _set_index_content_4_sub_categs(
             self, lang: str, page: str, categ: str, card: str) -> None:
@@ -322,14 +353,16 @@ class SetPages(object):
                 f.write(f'{start}{content}{end}')
                 return
 
-        pages, content, num = [], '', 0
+        pages, content, num, items = [], '', 0, []
         for inode in self._sorted(doc_path):
             if (doc_path/inode).is_file():
                 if not inode.endswith('.docx'):
                     continue
                 
                 html = DocxHTML(doc_path/inode)
-                content += self._set_html_item(html, site_path,start,end, page)
+                item = self._set_html_item(html, site_path,start,end, page)
+                items.append((html.path, item))
+                content += item
 
                 num += 1
                 if num == self._items_per_page:
@@ -346,24 +379,22 @@ class SetPages(object):
                 start = self._set_active_nav_item(page, start)
                 f.write(f'{start}{content}{end}')
 
-    def _set_nav_brand(self) -> None:
-        name = ''
-        if self._conf('Brand', 'display_name'):
-            name = self._conf('Brand', 'name')
+        self._all_docs[lang].extend(items)
 
-        logo = ''
-        if self._conf('Brand', 'display_logo'):
-            logo = (PATH/self._conf('Brand', 'logo')).as_posix()
+    def _set_nav_brand(self) -> None:
+        name = self._conf('Brand', 'name')
+        logo = (PATH/self._conf('Brand', 'logo')).as_posix()
+        favicon = (PATH/self._conf('Brand', 'favicon')).as_posix()
+        light_subtitle = self._conf('Post:LightTheme', 'subtitle_color')
+        dark_subtitle = self._conf('Post:DarkTheme', 'subtitle_color')
 
         self._html_top = self._html_top.replace(
             '#brand', logo).replace(
-                '#favicon', (PATH/self._conf('Brand', 'favicon')).as_posix()
-            ).replace('<!-- TAB TITLE-->', self._conf('Brand', 'name')
-            ).replace('<!-- PAGE NAME -->', name
-            ).replace('#LightSubtitleColor',
-                self._conf('Post:LightTheme', 'subtitle_color')
-            ).replace('#DarkSubtitleColor',
-                self._conf('Post:DarkTheme', 'subtitle_color'))
+            '#favicon', favicon).replace(
+            '<!-- TAB TITLE-->', name).replace(
+            '<!-- PAGE NAME -->', name).replace(
+            '#LightSubtitleColor', light_subtitle).replace(
+            '#DarkSubtitleColor', dark_subtitle)
 
     def _set_nav_items(self) -> None:
         a = '<a aria-current="page" class="m-0 mx-2 p-0 nav-link" #>*</a>'
