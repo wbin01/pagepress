@@ -1,32 +1,27 @@
 #!/usr/bin/env python3
 import re
-import hashlib
-import locale
 import shutil
 import string
 from pathlib import Path
 
-from .conf_file import ConfFile
+from .conf import Conf
 from .docx_html import DocxHTML
-from .svg_icon_to_html import SvgIconToHTML
-
+from .img import Img
 
 PATH = Path(__file__).resolve().parent.parent.parent
 
 
 class SetPages(object):
     def __init__(self) -> None:
-        self._docs_path = PATH/'docs'
-        self._site_path = PATH/'site'
-        self._data_path = PATH/'data'
-        self._html_path = self._data_path/'html_models'
+        self._conf = Conf()
+        self._img = Img()
 
-        self._default_lang = locale.getdefaultlocale()[0].replace('_', '-')
-        self._lang = self._default_lang  # locale.normalize(locale)
-        self._locales = self._locales_code()
+        self._docs_path = self._conf.docs_path
+        self._site_path = self._conf.site_path
+        self._data_path = self._conf.data_path
+        self._html_path = self._conf.html_path
 
         self._html_top, self._html_end = self._html_base()
-        self._langs = self._langs_code()
 
         with open(self._html_path/'card.html', 'r') as f:
             self._card = f.read()
@@ -37,13 +32,6 @@ class SetPages(object):
         with open(self._data_path/'img64'/'blank.txt', 'r') as n:
             self._blank_img = n.read()
 
-        if not (PATH/'page.conf').is_file():
-            shutil.copy(self._data_path/'page.conf', PATH/'page.conf')
-        self._conf_user = ConfFile(PATH/'page.conf')
-        self._conf_page = ConfFile(self._data_path/'page.conf')
-
-        self._icon_close = SvgIconToHTML('close').html
-        self._icon_tag = SvgIconToHTML('tag').html
         self._name_chars = string.ascii_lowercase + string.digits
         self._items_per_page = 3
 
@@ -66,73 +54,13 @@ class SetPages(object):
             elif item.is_dir():
                 shutil.rmtree(item)
 
-    def _conf(self, name: str, key: str) -> str:
-        if f'[{name}]' in self._conf_user.content:
-            if key in self._conf_user.content[f'[{name}]']:
-                return self._conf_user.content[f'[{name}]'][key]
-
-        value = self._conf_page.content[f'[{name}]'][key]
-
-        if f'[{name}]' not in self._conf_user.content:
-            self._conf_user.content[f'[{name}]'] = {key: value}
-        else:
-            self._conf_user.content[f'[{name}]'][key] = value
-        self._conf_user.update_file()
-
-        if value == 'True': value = True
-        if value == 'False': value = False
-        return value
-
     def _display_name(self, name: str) -> str:
         return re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', name)
-
-    def _hash(self, path: str):
-        h = hashlib.new('md5')  # sha256
-        with open(path, 'rb') as file_:
-            while True:
-                data = file_.read(65536)
-                if not data:
-                    break
-                h.update(data)
-        return h.hexdigest()
 
     def _html_base(self) -> list:
         with open(self._html_path/'index.html', 'r') as file_:
             html = file_.read()
         return html.split('<!-- / -->')
-
-    def _langs_code(self) -> list:
-        langs = []
-        for path in self._docs_path.iterdir():
-            if path.is_dir():
-                if any(path.iterdir()):
-                    langs.append(path.name)
-
-        if not langs:
-            langs.append(self._default_lang)
-            file_path = self._docs_path/self._default_lang/'settings.conf'
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-
-        return langs
-
-    def _locales_code(self) -> list:
-        locales_code = [
-            x[1].split('.')[0] for x in locale.locale_alias.items()]
-
-        locales = []
-        for local in locales_code:
-            if local not in locales: locales.append(local)
-        
-        if locales: locales.sort()
-        with open(self._docs_path/'langs.txt', 'w') as local_file:
-            local_file.write(
-                "\nYou don't need to write the correct language code — any "
-                "name will do — but using the correct one helps with the "
-                "site's indexing.\n\n")
-            for local in locales:
-                local_file.write(local.replace('_', '-') + '\n')
-
-        return locales_code
 
     def _normalized_name(self, name: str, ext: str = '') -> str:
         if ext:
@@ -220,7 +148,6 @@ class SetPages(object):
         return html
 
     def _set_index_card(self, html) -> str:
-        
         categ = ''
         if html.categ and html.categ[0]:
             style = (
@@ -247,11 +174,11 @@ class SetPages(object):
         with open(self._html_path/'card.html', 'r') as f:
             card = f.read()
 
-        for lang in self._langs:
+        for lang in self._conf.langs:
             self._all_docs[lang] = []
 
         # Items
-        for lang in self._langs:
+        for lang in self._conf.langs:
             doc_path = self._docs_path/lang
             site_path = self._site_path/lang
 
@@ -273,7 +200,7 @@ class SetPages(object):
 
         # INDEX
         if single: return
-        for lang in self._langs:
+        for lang in self._conf.langs:
             
             pages, content, num = [], '', 0
             for html in self._set_index_items_list(lang):
@@ -327,11 +254,16 @@ class SetPages(object):
                 if num % 2 == 0:
                     content += '<div class="row m-0 p-0 mx-3">\n'
 
+                image = self._blank_img
+                for item in (doc_path/categ).iterdir():
+                    if item.is_file():
+                        image = self._img.base64(item, self._blank_img)
+
                 categ_name = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', categ.upper())
                 content += categ_card.replace(
                     '#title', categ_name).replace(
                     '#link', inode_ + '/index.html').replace(
-                    '#img_src', self._blank_img).replace(
+                    '#img_src', image).replace(
                     '#img_noise', self._noise_img)
 
                 if num % 2 != 0 or len(dirs) == 1:
@@ -450,11 +382,11 @@ class SetPages(object):
         return news
 
     def _set_nav_brand(self) -> None:
-        name = self._conf('Brand', 'name')
-        logo = (PATH/self._conf('Brand', 'logo')).as_posix()
-        favicon = (PATH/self._conf('Brand', 'favicon')).as_posix()
-        light_subtitle = self._conf('Post:LightTheme', 'subtitle_color')
-        dark_subtitle = self._conf('Post:DarkTheme', 'subtitle_color')
+        name = self._conf.user('Brand', 'name')
+        logo = (PATH/self._conf.user('Brand', 'logo')).as_posix()
+        favicon = (PATH/self._conf.user('Brand', 'favicon')).as_posix()
+        light_subtitle = self._conf.user('Post:LightTheme', 'subtitle_color')
+        dark_subtitle = self._conf.user('Post:DarkTheme', 'subtitle_color')
 
         self._html_top = self._html_top.replace(
             '#brand', logo).replace(
@@ -467,7 +399,7 @@ class SetPages(object):
     def _set_nav_items(self) -> None:
         a = '<a aria-current="page" class="m-0 mx-1 p-0 px-1 nav-link" #>*</a>'
         li = f'<li class="nav-item m-0 p-0">{a}</li>\n     '
-        for lang in self._langs:
+        for lang in self._conf.langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 index = file_.read()
 
@@ -484,7 +416,7 @@ class SetPages(object):
                 f.write(new_index)
 
     def _set_nav_items_indexes(self) -> None:
-        for lang in self._langs:
+        for lang in self._conf.langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
                 html = file_.read()
 
@@ -505,21 +437,21 @@ class SetPages(object):
             lang_item = lang_item.replace('\n', '\n' + (' '*10))
 
         langs = ''
-        for lang in self._langs:
+        for lang in self._conf.langs:
             icon = lang.lower().split('-')[1] if '-' in lang else lang.lower()
             langs += lang_item.replace('#lang', lang).replace('#icon', icon)
 
-        if len(self._langs) == 1:
+        if len(self._conf.langs) == 1:
             self._html_top = self._html_top.replace(lang_btn, '<span></span>')
 
         self._html_top = self._html_top.replace(
             '<!-- LANGS -->', langs).replace(
-            '<!-- CLOSE ICON -->', self._icon_close)
+            '<!-- CLOSE ICON -->', self._img.icon('close'))
 
     def _set_nav_langs_index_redirection(self) -> None:
         index_start = self._html_top.replace(
             '<html lang="en-US"',
-            f'<html lang="{self._default_lang}"').replace(
+            f'<html lang="{self._conf.default_lang}"').replace(
             '// REDIRECT',
             "window.location.replace(`${savedLang}/index.html`);").replace(
             '#BRAND', 'index.html')
@@ -528,7 +460,7 @@ class SetPages(object):
             index.write(index_start)
             index.write(self._html_end)
 
-        for lang in self._langs:
+        for lang in self._conf.langs:
             file_path = self._site_path/lang/'index.html'
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -641,7 +573,7 @@ class SetPages(object):
             f'href="{brand_next}{lang}/index.html"')
 
         # Langs link
-        for l in self._langs:
+        for l in self._conf.langs:
             html = html.replace(
                 f"""changeLang('{l}')" href="{langs_prev}{l}/index.html">""",
                 f"""changeLang('{l}')" href="{langs_next}{l}/index.html">""")
