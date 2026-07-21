@@ -83,6 +83,9 @@ class SetPages(object):
         if value == 'False': value = False
         return value
 
+    def _display_name(self, name: str) -> str:
+        return re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', name)
+
     def _hash(self, path: str):
         h = hashlib.new('md5')  # sha256
         with open(path, 'rb') as file_:
@@ -219,6 +222,30 @@ class SetPages(object):
 
         return html
 
+    def _set_index_card(self, html) -> str:
+        s, e, c, r = (
+            '<small><span class="border border-light border-opacity-25 fw-light'
+            ' text-light text-opacity-50 text-uppercase bg-dark bg-opacity-75 '
+            'p-0 pe-1 ps-2 m-0 me-1 rounded-end-4">', '</span></small>',
+            'class="position-absolute top-0 start-0 p-0 m-0 ms-1"',
+            r'^\d+ +-|^\d+-|^\d+ ')
+        categ = ''
+        if html.categ and html.categ[0]:
+            r0 = re.sub(r, '', html.categ[0])
+            categ = f'<div {c}>{s}{r0}{e}</div>'
+
+            if len(html.categ) == 2:
+                r1 = re.sub(r, '', html.categ[1])
+                categ = f'<div {c}>{s}{r0}{e}{s}{r1}{e}</div>'
+
+        card = html.card
+        card = card.replace(
+            f'<a class="text-decoration-none" href="{html.name}">',
+            f'<a class="text-decoration-none" href="{html.link}">'
+            ).replace('<!-- card title -->', categ)
+
+        return card
+
     def _set_indexes_content(self) -> None:
         with open(self._html_path/'card.html', 'r') as f:
             card = f.read()
@@ -273,56 +300,6 @@ class SetPages(object):
 
         self._all_last_doc_paths = self._all_doc_paths
 
-    def _set_index_card(self, html) -> str:
-        s, e, c, r = (
-            '<small><span class="border border-light border-opacity-25 fw-light'
-            ' text-light text-opacity-50 text-uppercase bg-dark bg-opacity-75 '
-            'p-0 pe-1 ps-2 m-0 me-1 rounded-end-4">', '</span></small>',
-            'class="position-absolute top-0 start-0 p-0 m-0 ms-1"',
-            r'^\d+ +-|^\d+-|^\d+ ')
-        categ = ''
-        if html.categ and html.categ[0]:
-            r0 = re.sub(r, '', html.categ[0])
-            categ = f'<div {c}>{s}{r0}{e}</div>'
-
-            if len(html.categ) == 2:
-                r1 = re.sub(r, '', html.categ[1])
-                categ = f'<div {c}>{s}{r0}{e}{s}{r1}{e}</div>'
-
-        card = html.card
-        card = card.replace(
-            f'<a class="text-decoration-none" href="{html.name}">',
-            f'<a class="text-decoration-none" href="{html.link}">'
-            ).replace('<!-- card title -->', categ)
-
-        return card
-
-    def _set_index_items_list(self, lang) -> list:
-        data_paths = self._data_path/f'{lang}-paths.txt'
-        if not data_paths.is_file():
-            with open(data_paths, 'w+') as f: f.write('')
-
-        with open(data_paths, 'r') as f:
-            all_last_doc_paths = f.read().split('\n')
-
-        news, olds = [], []
-        for html in self._all_docs[lang]:
-            if html.path.as_posix() in all_last_doc_paths:
-                olds.append(html)
-            else:
-                news.append(html)
-
-        lasts = []
-        for item in all_last_doc_paths:
-            for x in olds:
-                if x.path.as_posix() == item: lasts.append(x)
-
-        news.extend(lasts)
-        with open(data_paths, 'w+') as f:
-            f.write('\n'.join([x.path.as_posix() for x in news]))
-
-        return news
-
     def _set_index_content_4_categs(
             self, lang: str, page: str, card: str) -> None:
         content = ''
@@ -347,21 +324,18 @@ class SetPages(object):
                 dirs.append(path.name)
 
         if dirs:
-            content += '<div class="m-5"> </div>\n'
+            content += '<div class="m-0 p-0 mt-3"></div>\n'
             for num, categ in enumerate(self._sorted(dirs, True)):
                 inode_ = self._normalized_name(categ)
-                padding = 'pe-4 ps-2'
                 if num % 2 == 0:
-                    padding = 'ps-4 pe-2'
-                    content += '<div class="row m-0 p-0">\n'
+                    content += '<div class="row m-0 p-0 mx-3">\n'
 
                 categ_name = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', categ.upper())
                 content += categ_card.replace(
                     '#title', categ_name).replace(
                     '#link', inode_ + '/index.html').replace(
                     '#img_src', self._blank_img).replace(
-                    '#img_noise', self._noise_img).replace(
-                    '#padding', padding)
+                    '#img_noise', self._noise_img)
 
                 if num % 2 != 0 or len(dirs) == 1:
                     content += '\n</div>\n'
@@ -417,7 +391,13 @@ class SetPages(object):
                 f.write(f'{start}{content}{end}')
                 return
 
-        pages, content, num, items = [], '', 0, []
+        clss = 'class="text-opacity-5 fs-6"'
+        name = f'<small {clss}>{self._display_name(page).upper()} /</small>'
+        sub_name = self._display_name(categ).upper()
+        clss = 'container text-center fw-light text-body text-opacity-25 mt-2'
+        content = f'<h3 class="{clss}"><small>{name}</small> {sub_name}</h3>\n'
+
+        pages, num, items = [], 0, []
         for inode in self._sorted(doc_path):
             if (doc_path/inode).is_file():
                 if not inode.endswith('.docx'):
@@ -446,6 +426,32 @@ class SetPages(object):
 
         self._all_docs[lang].extend(items)
 
+    def _set_index_items_list(self, lang) -> list:
+        data_paths = self._data_path/f'{lang}-paths.txt'
+        if not data_paths.is_file():
+            with open(data_paths, 'w+') as f: f.write('')
+
+        with open(data_paths, 'r') as f:
+            all_last_doc_paths = f.read().split('\n')
+
+        news, olds = [], []
+        for html in self._all_docs[lang]:
+            if html.path.as_posix() in all_last_doc_paths:
+                olds.append(html)
+            else:
+                news.append(html)
+
+        lasts = []
+        for item in all_last_doc_paths:
+            for x in olds:
+                if x.path.as_posix() == item: lasts.append(x)
+
+        news.extend(lasts)
+        with open(data_paths, 'w+') as f:
+            f.write('\n'.join([x.path.as_posix() for x in news]))
+
+        return news
+
     def _set_nav_brand(self) -> None:
         name = self._conf('Brand', 'name')
         logo = (PATH/self._conf('Brand', 'logo')).as_posix()
@@ -462,7 +468,7 @@ class SetPages(object):
             '#DarkSubtitleColor', dark_subtitle)
 
     def _set_nav_items(self) -> None:
-        a = '<a aria-current="page" class="m-0 mx-2 p-0 nav-link" #>*</a>'
+        a = '<a aria-current="page" class="m-0 mx-1 p-0 px-1 nav-link" #>*</a>'
         li = f'<li class="nav-item m-0 p-0">{a}</li>\n     '
         for lang in self._langs:
             with open(self._site_path/lang/'index.html', 'r') as file_:
