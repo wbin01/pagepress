@@ -225,7 +225,7 @@ class SetPages(object):
     def _set_index_card(self, html) -> str:
         s, e, c, r = (
             '<small><span class="border border-light border-opacity-25 fw-light'
-            ' text-light text-opacity-50 text-uppercase bg-dark bg-opacity-75 '
+            ' text-light text-opacity-75 text-uppercase bg-dark bg-opacity-75 '
             'p-0 pe-1 ps-2 m-0 me-1 rounded-end-4">', '</span></small>',
             'class="position-absolute top-0 start-0 p-0 m-0 ms-1"',
             r'^\d+ +-|^\d+-|^\d+ ')
@@ -569,12 +569,13 @@ class SetPages(object):
         if prev == 1 or num == 1: prev = ''
         if num == pages: next_ = pages
         
+        active = 'active bg-secondary bg-opacity-50'
         if p1 == num:
-            control = control.replace('-body">#P1', '-body active">#P1')
+            control = control.replace('-body">#P1', f'-body {active}">#P1')
         elif p2 == num:
-            control = control.replace('-body">#P2', '-body active">#P2')
+            control = control.replace('-body">#P2', f'-body {active}">#P2')
         else:
-            control = control.replace('-body">#P3', '-body active">#P3')
+            control = control.replace('-body">#P3', f'-body {active}">#P3')
 
         control = control.replace(
             '#P1', f'{p1}').replace('#P2', f'{p2}').replace('#P3', f'{p3}')
