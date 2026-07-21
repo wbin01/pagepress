@@ -11,10 +11,10 @@ PATH = Path(__file__).resolve().parent.parent.parent
 
 class Conf(object):
     def __init__(self):
-        self._docs_path = PATH/'docs'
-        self._site_path = PATH/'site'
-        self._data_path = PATH/'data'
-        self._html_path = self._data_path/'html_models'
+        self._path_docs = PATH/'docs'
+        self._path_site = PATH/'site'
+        self._path_data = PATH/'data'
+        self._path_html = self._path_data/'html_models'
 
         self._default_lang = locale.getdefaultlocale()[0].replace('_', '-')
         self._lang = self._default_lang  # locale.normalize(locale)
@@ -22,14 +22,14 @@ class Conf(object):
         self._langs = self._langs_code()
 
         if not (PATH/'page.conf').is_file():
-            shutil.copy(self._data_path/'page.conf', PATH/'page.conf')
+            shutil.copy(self._path_data/'page.conf', PATH/'page.conf')
         self._conf_user = ConfFile(PATH/'page.conf')
-        self._conf_page = ConfFile(self._data_path/'page.conf')
+        self._conf_page = ConfFile(self._path_data/'page.conf')
 
     @property
-    def data_path(self) -> Path:
+    def path_data(self) -> Path:
         """..."""
-        return self._data_path
+        return self._path_data
 
     @property
     def default_lang(self) -> str:
@@ -37,14 +37,14 @@ class Conf(object):
         return self._default_lang
 
     @property
-    def docs_path(self) -> Path:
+    def path_docs(self) -> Path:
         """..."""
-        return self._docs_path
+        return self._path_docs
 
     @property
-    def html_path(self) -> Path:
+    def path_html(self) -> Path:
         """..."""
-        return self._html_path
+        return self._path_html
 
     @property
     def langs(self) -> str:
@@ -57,9 +57,9 @@ class Conf(object):
         return self._locales
 
     @property
-    def site_path(self) -> Path:
+    def path_site(self) -> Path:
         """..."""
-        return self._site_path
+        return self._path_site
 
     def hash(self, path: str):
         """..."""
@@ -93,14 +93,14 @@ class Conf(object):
     def _langs_code(self) -> list:
         """..."""
         langs = []
-        for path in self._docs_path.iterdir():
+        for path in self._path_docs.iterdir():
             if path.is_dir():
                 if any(path.iterdir()):
                     langs.append(path.name)
 
         if not langs:
             langs.append(self._default_lang)
-            file_path = self._docs_path/self._default_lang/'settings.conf'
+            file_path = self._path_docs/self._default_lang/'settings.conf'
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
         return langs
@@ -114,7 +114,7 @@ class Conf(object):
             if local not in locales: locales.append(local)
         
         if locales: locales.sort()
-        with open(self._docs_path/'langs.txt', 'w') as local_file:
+        with open(self._path_docs/'langs.txt', 'w') as local_file:
             local_file.write(
                 "\nYou don't need to write the correct language code — any "
                 "name will do — but using the correct one helps with the "

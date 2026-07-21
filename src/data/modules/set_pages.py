@@ -16,21 +16,20 @@ class SetPages(object):
         self._conf = Conf()
         self._img = Img()
 
-        self._docs_path = self._conf.docs_path
-        self._site_path = self._conf.site_path
-        self._data_path = self._conf.data_path
-        self._html_path = self._conf.html_path
+        self._path_docs = self._conf.path_docs
+        self._path_site = self._conf.path_site
+        self._path_data = self._conf.path_data
+        self._path_html = self._conf.path_html
 
+        self._img_noise = self._img.base64(self._path_data/'img64'/'noise.txt')
+        self._img_blank = self._img.base64(self._path_data/'img64'/'blank.txt')
+
+        cover = self._html_base('cover').replace('#image', self._img_noise)
+        title = self._html_base('title')
+        self._html_cover, self._html_cover_alt = cover.split('<!-- / -->')
+        self._html_title, self._html_title_alt = title.split('<!-- / -->')
         self._html_top, self._html_end = self._html_base()
-
-        with open(self._html_path/'card.html', 'r') as f:
-            self._card = f.read()
-
-        with open(self._data_path/'img64'/'noise.txt', 'r') as n:
-            self._noise_img = n.read()
-
-        with open(self._data_path/'img64'/'blank.txt', 'r') as n:
-            self._blank_img = n.read()
+        self._html_card = self._html_base('card')
 
         self._name_chars = string.ascii_lowercase + string.digits
         self._items_per_page = 3
@@ -48,7 +47,7 @@ class SetPages(object):
         self._set_indexes_content()
 
     def _clear(self) -> None:
-        for item in self._site_path.iterdir():
+        for item in self._path_site.iterdir():
             if item.is_file() or item.is_symlink():
                 item.unlink()
             elif item.is_dir():
@@ -57,8 +56,12 @@ class SetPages(object):
     def _display_name(self, name: str) -> str:
         return re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', name)
 
-    def _html_base(self) -> list:
-        with open(self._html_path/'index.html', 'r') as file_:
+    def _html_base(self, path: str = '') -> list:
+        path = self._path_html/f'{path}.html'
+        if path.is_file():
+            with open(path, 'r') as f: return f.read()
+
+        with open(self._path_html/'index.html', 'r') as file_:
             html = file_.read()
         return html.split('<!-- / -->')
 
@@ -93,17 +96,10 @@ class SetPages(object):
     def _set_html_item(
             self, html: DocxHTML, site_path: PATH, start: str, end: str,
             categ: list = [], single: bool = False) -> str:
-
-        with open(self._html_path/'cover.html', 'r') as f:
-            cover = f.read().replace('#image', self._noise_img)
-            cover, cover_alt = cover.split('<!-- / -->')
-
-        with open(self._html_path/'title.html', 'r') as f:
-            title, title_alt = f.read().split('<!-- / -->')
         
+        cover, title = self._html_cover, self._html_title
         if not html.cover:
-            cover = cover_alt
-            title = title_alt
+            cover, title = self._html_cover_alt, self._html_title_alt
 
         categs = ''
         if categ:
@@ -130,18 +126,17 @@ class SetPages(object):
         site_path.parent.mkdir(parents=True, exist_ok=True)
         html.save(site_path)
 
-        if not html.cover_src: html.cover_src = self._blank_img
-        content = self._card.replace(
+        if not html.cover_src: html.cover_src = self._img_blank
+        content = self._html_card.replace(
             '#categs', categs).replace(
             '#title', html.title_text).replace(
             '#link', doc_name).replace(
             '#img_src', html.cover_src).replace(
-            '#img_noise', self._noise_img)
+            '#img_noise', self._img_noise)
 
-        link = site_path.as_posix().replace(self._site_path.as_posix(), '')[1:]
+        link = site_path.as_posix().replace(self._path_site.as_posix(), '')[1:]
         html.card = content
         html.categ = categ
-        html.categs = categs
         html.name = doc_name
         html.link = link.split('/', maxsplit=1)[1]
 
@@ -171,16 +166,13 @@ class SetPages(object):
         return card
 
     def _set_indexes_content(self) -> None:
-        with open(self._html_path/'card.html', 'r') as f:
-            card = f.read()
-
         for lang in self._conf.langs:
             self._all_docs[lang] = []
 
         # Items
         for lang in self._conf.langs:
-            doc_path = self._docs_path/lang
-            site_path = self._site_path/lang
+            doc_path = self._path_docs/lang
+            site_path = self._path_site/lang
 
             with open(site_path/'index.html', 'r') as f:
                 start, end = f.read().split('<!-- CONTENT -->')
@@ -195,7 +187,7 @@ class SetPages(object):
                     html = self._set_html_item(html, site_path, start, end)
                     items.append(html)
                 else:
-                    self._set_index_content_4_categs(lang, inode, card)
+                    self._set_index_content_4_categs(lang, inode)
             self._all_docs[lang].extend(items)
 
         # INDEX
@@ -219,22 +211,21 @@ class SetPages(object):
                 content = self._set_pagination(content, num, len(pages))
 
                 if num == 1: num = ''
-                with open(self._site_path/lang/f'index{num}.html', 'w+') as f:
+                with open(self._path_site/lang/f'index{num}.html', 'w+') as f:
                     f.write(f'{start}{content}{end}')
 
         self._all_last_doc_paths = self._all_doc_paths
 
-    def _set_index_content_4_categs(
-            self, lang: str, page: str, card: str) -> None:
+    def _set_index_content_4_categs(self, lang: str, page: str) -> None:
         content = ''
         page_ = self._normalized_name(page)
-        doc_path = self._docs_path/lang/page
-        site_path = self._site_path/lang/page_
+        doc_path = self._path_docs/lang/page
+        site_path = self._path_site/lang/page_
 
         with open(site_path/'index.html', 'r') as f:
             start, end = f.read().split('<!-- CONTENT -->')
 
-        with open(self._html_path/'categ.html', 'r') as f:
+        with open(self._path_html/'categ.html', 'r') as f:
             categ_card = f.read()
 
         if self._set_single_page(doc_path, site_path, start, end, page):
@@ -254,24 +245,24 @@ class SetPages(object):
                 if num % 2 == 0:
                     content += '<div class="row m-0 p-0 mx-3">\n'
 
-                image = self._blank_img
+                image = self._img_blank
                 for item in (doc_path/categ).iterdir():
                     if item.is_file():
-                        image = self._img.base64(item, self._blank_img)
+                        image = self._img.base64(item, self._img_blank)
 
                 categ_name = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', categ.upper())
                 content += categ_card.replace(
                     '#title', categ_name).replace(
                     '#link', inode_ + '/index.html').replace(
                     '#img_src', image).replace(
-                    '#img_noise', self._noise_img)
+                    '#img_noise', self._img_noise)
 
                 if num % 2 != 0 or len(dirs) == 1:
                     content += '\n</div>\n'
                 
                 index_path = site_path/inode_/'index.html'
                 index_path.parent.mkdir(parents=True, exist_ok=True)
-                self._set_index_content_4_sub_categs(lang, page, categ, card)
+                self._set_index_content_4_sub_categs(lang, page, categ)
 
         pages, num, items = [], 0, []
         for doc in self._sorted(docs):
@@ -298,14 +289,14 @@ class SetPages(object):
         self._all_docs[lang].extend(items)
 
     def _set_index_content_4_sub_categs(
-            self, lang: str, page: str, categ: str, card: str) -> None:
+            self, lang: str, page: str, categ: str) -> None:
         page_ = self._normalized_name(page)
         categ_ = self._normalized_name(categ)
         content = ''
-        doc_path = self._docs_path/lang/page/categ
-        site_path = self._site_path/lang/page_/categ_
+        doc_path = self._path_docs/lang/page/categ
+        site_path = self._path_site/lang/page_/categ_
 
-        with open(self._site_path/lang/page_/'index.html', 'r') as f:
+        with open(self._path_site/lang/page_/'index.html', 'r') as f:
             html = f.read()
 
         html = self._update_nav_links(lang, html, 'SUB-CATEG')
@@ -314,17 +305,17 @@ class SetPages(object):
         if self._set_single_page(doc_path, site_path, start, end, page):
             return
 
-        if not any(doc_path.iterdir()):
-            with open(site_path/'index.html','w') as f:
-                start = self._set_active_nav_item([page], start)
-                f.write(f'{start}{content}{end}')
-                return
-
         clss = 'class="text-opacity-5 fs-6"'
         name = f'<small {clss}>{self._display_name(page).upper()} /</small>'
         sub_name = self._display_name(categ).upper()
         clss = 'container text-center fw-light text-body text-opacity-25 mt-2'
         content = f'<h3 class="{clss}"><small>{name}</small> {sub_name}</h3>\n'
+
+        if not any(doc_path.iterdir()):
+            with open(site_path/'index.html','w') as f:
+                start = self._set_active_nav_item([page], start)
+                f.write(f'{start}{content}{end}')
+                return
 
         pages, num, items = [], 0, []
         for inode in self._sorted(doc_path):
@@ -356,7 +347,7 @@ class SetPages(object):
         self._all_docs[lang].extend(items)
 
     def _set_index_items_list(self, lang) -> list:
-        data_paths = self._data_path/f'{lang}-paths.txt'
+        data_paths = self._path_data/f'{lang}-paths.txt'
         if not data_paths.is_file():
             with open(data_paths, 'w+') as f: f.write('')
 
@@ -400,10 +391,10 @@ class SetPages(object):
         a = '<a aria-current="page" class="m-0 mx-1 p-0 px-1 nav-link" #>*</a>'
         li = f'<li class="nav-item m-0 p-0">{a}</li>\n     '
         for lang in self._conf.langs:
-            with open(self._site_path/lang/'index.html', 'r') as file_:
+            with open(self._path_site/lang/'index.html', 'r') as file_:
                 index = file_.read()
 
-            li_itens, langs = '', self._docs_path/lang
+            li_itens, langs = '', self._path_docs/lang
             for node in self._sorted(langs, True):
                 node_ = self._normalized_name(node)
                 if (langs/node).is_dir():
@@ -412,26 +403,26 @@ class SetPages(object):
                         '*', re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', node))
 
             new_index = index.replace('<!-- NAV ITEM -->', li_itens.strip())
-            with open(self._site_path/lang/'index.html', 'w+') as f:
+            with open(self._path_site/lang/'index.html', 'w+') as f:
                 f.write(new_index)
 
     def _set_nav_items_indexes(self) -> None:
         for lang in self._conf.langs:
-            with open(self._site_path/lang/'index.html', 'r') as file_:
+            with open(self._path_site/lang/'index.html', 'r') as file_:
                 html = file_.read()
 
             html = self._update_nav_links(lang, html, 'CATEG')
-            for path in (self._docs_path/lang).iterdir():
+            for path in (self._path_docs/lang).iterdir():
                 categ = self._normalized_name(path.name)
                 if path.is_dir():
-                    path = self._site_path/lang/categ/'index.html'
+                    path = self._path_site/lang/categ/'index.html'
                     path.parent.mkdir(parents=True, exist_ok=True)
 
                     with open(path, 'w') as file_:
                         file_.write(html)
 
     def _set_nav_langs(self) -> None:
-        with open(self._html_path/'langs.html', 'r') as f:
+        with open(self._path_html/'langs.html', 'r') as f:
             lang_btn, lang_item = f.read().split('<!-- / -->')
             lang_btn = lang_btn.replace('\n', '').strip()
             lang_item = lang_item.replace('\n', '\n' + (' '*10))
@@ -456,12 +447,12 @@ class SetPages(object):
             "window.location.replace(`${savedLang}/index.html`);").replace(
             '#BRAND', 'index.html')
 
-        with open(self._site_path/'index.html', 'w+') as index:
+        with open(self._path_site/'index.html', 'w+') as index:
             index.write(index_start)
             index.write(self._html_end)
 
         for lang in self._conf.langs:
-            file_path = self._site_path/lang/'index.html'
+            file_path = self._path_site/lang/'index.html'
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
             html_start = self._html_top.replace(
@@ -473,7 +464,7 @@ class SetPages(object):
                 index.write(self._html_end)
 
     def _set_pagination(self, html: str, num: int, pages: int) -> str:
-        with open(self._html_path/'pagination.html') as f:
+        with open(self._path_html/'pagination.html') as f:
             pag_min, pag_simple, pag_full = f.read().split('<!-- / -->')
 
         if pages == 1:
@@ -579,7 +570,7 @@ class SetPages(object):
                 f"""changeLang('{l}')" href="{langs_next}{l}/index.html">""")
 
         # Pages link
-        for path in (self._docs_path/lang).iterdir():
+        for path in (self._path_docs/lang).iterdir():
             if path.is_dir():
                 page_name = self._normalized_name(path.name)
                 html = html.replace(

@@ -20,13 +20,16 @@ class Img(object):
         if not path.is_file():
             return fallback
 
+        if path.suffix.lower() == '.txt':
+            with open(path, 'r') as f:
+                return f.read()
+
         if path.suffix.lower() not in self._supported_ext:
             return fallback
 
         with open(path, 'rb') as f:
             src = base64.b64encode(f.read()).decode('ascii')
-            image = f'data:image/{path.suffix};base64,{src}'
-        return image
+            return f'data:image/{path.suffix};base64,{src}'
 
     def icon(self, name: str) -> str:
         return SvgIconToHTML('close').html
