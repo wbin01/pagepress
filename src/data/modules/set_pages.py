@@ -180,16 +180,13 @@ class SetPages(object):
         categs = ''
         if categ:
             start = self._set_active_nav_item(categ, start)
-            span, span_end, rg = (
-                '<small><span class="border border-outline-secondary '
-                'border-opacity-50 text-body text-opacity-25 text-uppercase '
-                'p-0 pe-1 ps-2 m-0 me-1 rounded-end-4">', '</span></small>',
-                r'^\d+ +-|^\d+-|^\d+ ')
             if len(categ) == 2:
-                c, s = re.sub(rg, '', categ[0]), re.sub(rg, '', categ[1])
-                categs = f'{span}{c}{span_end}{span}{s}{span_end}'
-            else:
-                categs = f'{span}{re.sub(rg, '', categ[0])}{span_end}'
+                style, small = (
+                    ' class="container-lg m-0 p-0 fw-light text-opacity-75"',
+                    '<small><small class="text-body text-opacity-50">')
+                c0 = self._display_name(categ[0].lower()) + ' / '
+                c1 = self._display_name(categ[1].upper())
+                categs = f'<div{style}>{small}{c0}</small></small>{c1}</div>'
         
         cover = cover.replace('<!-- LABEL -->', categs)
         html.start = start
@@ -223,20 +220,20 @@ class SetPages(object):
         return html
 
     def _set_index_card(self, html) -> str:
-        s, e, c, r = (
-            '<small><span class="border border-light border-opacity-25 fw-light'
-            ' text-light text-opacity-75 text-uppercase bg-dark bg-opacity-75 '
-            'p-0 pe-1 ps-2 m-0 me-1 rounded-end-4">', '</span></small>',
-            'class="position-absolute top-0 start-0 p-0 m-0 ms-1"',
-            r'^\d+ +-|^\d+-|^\d+ ')
+        
         categ = ''
         if html.categ and html.categ[0]:
-            r0 = re.sub(r, '', html.categ[0])
-            categ = f'<div {c}>{s}{r0}{e}</div>'
+            style = (
+                'class="m-0 p-0 px-2 fw-light position-absolute top-0 end-0 '
+                'text-body text-opacity-75"')
+            c0 = self._display_name(html.categ[0].upper())
+            categ = f'<div {style}>{c0}</div>'
 
             if len(html.categ) == 2:
-                r1 = re.sub(r, '', html.categ[1])
-                categ = f'<div {c}>{s}{r0}{e}{s}{r1}{e}</div>'
+                small = f'<small><small class="text-body text-opacity-50">'
+                c0 = c0.lower() + ' / '
+                c1 = self._display_name(html.categ[1].upper())
+                categ = f'<div {style}>{small}{c0}</small></small>{c1}</div>'
 
         card = html.card
         card = card.replace(
