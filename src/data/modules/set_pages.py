@@ -45,7 +45,7 @@ class SetPages(object):
         self._set_nav_langs_index_redirection()
         self._set_nav_items()
         self._set_nav_items_indexes()
-        self._set_indexes_content()
+        self._set_content_for_home_pages()
 
     def _clear(self) -> None:
         for item in self._path_site.iterdir():
@@ -166,7 +166,37 @@ class SetPages(object):
 
         return card
 
-    def _set_indexes_content(self) -> None:
+    def _get_cover_image(self, path: Path, mode: str) -> str:
+        image = ''
+        for i in path.iterdir():
+            if i.is_file() and i.suffix in self._img.supported_ext:
+                if i.stem == mode:
+                    image = self._img.base64(i)
+                    break
+        return image
+
+    def _get_html_cover(
+            self, categ: str, sub_categ: str, image: str, mode: str) -> str:
+        clss = 'container text-center fw-light text-body text-opacity-25 mt-2'
+        categ = self._display_name(categ).upper()
+        title = ''
+        if sub_categ:
+            categ = f'<small>{categ} / </small>'
+            categ = f'<small class="text-opacity-5 fs-6">{categ}</small>'
+            sub_categ = self._display_name(sub_categ).upper()
+            categ = categ + sub_categ
+            title = f'<h3 class="{clss}">{categ}</h3>\n'
+        cover = ''
+        if image:
+            html_title = self._html_categ_title
+            html_title = html_title.replace('#title', categ)
+            html_cover = self._html_cover.replace('#img', image)
+            html_cover = html_cover.replace('height:300px;', 'height:150px;')
+            cover = f'{html_cover}\n{html_title}'
+            return cover
+        return title
+
+    def _set_content_for_home_pages(self) -> None:
         for lang in self._conf.langs:
             self._all_docs[lang] = []
 
@@ -188,7 +218,7 @@ class SetPages(object):
                     html = self._set_html_item(html, site_path, start, end)
                     items.append(html)
                 else:
-                    self._set_index_content_4_categs(lang, inode)
+                    self._set_content_for_categs(lang, inode)
             self._all_docs[lang].extend(items)
 
         # INDEX
@@ -217,7 +247,7 @@ class SetPages(object):
 
         self._all_last_doc_paths = self._all_doc_paths
 
-    def _set_index_content_4_categs(self, lang: str, page: str) -> None:
+    def _set_content_for_categs(self, lang: str, page: str) -> None:
         content = ''
         page_ = self._normalized_name(page)
         doc_path = self._path_docs/lang/page
@@ -246,19 +276,14 @@ class SetPages(object):
                 if num % 2 == 0:
                     content += '<div class="row m-0 p-0 mx-3">\n'
 
-                image, img = self._img_blank, []
-                for i in (doc_path/categ).iterdir():
-                    if i.is_file() and i.suffix in self._img.supported_ext:
-                        if i.stem == 'card':
-                            image = self._img.base64(i)
-                        elif i.stem == 'cover':
-                            img = self._img.base64(i)
+                card_img = self._get_cover_image(doc_path/categ, 'card')
+                if not card_img: card_img = self._img_blank
 
                 categ_name = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', categ.upper())
                 content += categ_card.replace(
                     '#title', categ_name).replace(
                     '#link', inode_ + '/index.html').replace(
-                    '#img_src', image).replace(
+                    '#img_src', card_img).replace(
                     '#img_noise', self._img_noise)
 
                 if num % 2 != 0 or len(dirs) == 1 or num == len(dirs) - 1:
@@ -266,7 +291,9 @@ class SetPages(object):
                 
                 index_path = site_path/inode_/'index.html'
                 index_path.parent.mkdir(parents=True, exist_ok=True)
-                self._set_index_content_4_sub_categs(lang, page, categ, img)
+
+                img_cover = self._get_cover_image(doc_path/categ, 'cover')
+                self._set_content_for_sub_categs(lang, page, categ, img_cover)
 
         pages, num, items = [], 0, []
         for doc in self._sorted(docs):
@@ -279,20 +306,11 @@ class SetPages(object):
             if num == self._items_per_page:
                 pages.append(content)
                 content, num = '', 0
+        if content and content not in pages:
+            pages.append(content)
 
-        if content and content not in pages: pages.append(content)
-
-        for i in doc_path.iterdir():
-            if i.is_file() and i.suffix in self._img.supported_ext:
-                img64 = self._img.base64(i)
-                if img64 and i.stem == 'cover':
-                    title = self._display_name(page).upper()
-                    title = self._html_categ_title.replace('#title', title)
-                    cover = self._html_cover.replace('#img', img64)
-                    cover = cover.replace('height:300px;', 'height:150px;')
-                    start += f'{cover}\n{title}'
-                    break
-
+        image = self._get_cover_image(doc_path, 'cover')
+        start += self._get_html_cover(page, '', image, 'cover')
         for num, content in enumerate(pages):
             num += 1
             content = self._set_pagination(content, num, len(pages))
@@ -304,11 +322,10 @@ class SetPages(object):
 
         self._all_docs[lang].extend(items)
 
-    def _set_index_content_4_sub_categs(
+    def _set_content_for_sub_categs(
             self, lang: str, page: str, categ: str, image: str) -> None:
         page_ = self._normalized_name(page)
         categ_ = self._normalized_name(categ)
-        content = ''
         doc_path = self._path_docs/lang/page/categ
         site_path = self._path_site/lang/page_/categ_
 
@@ -321,19 +338,7 @@ class SetPages(object):
         if self._set_single_page(doc_path, site_path, start, end, page):
             return
 
-        clss = 'class="text-opacity-5 fs-6"'
-        name = f'<small {clss}>{self._display_name(page).upper()} /</small>'
-        sub_name = self._display_name(categ).upper()
-        clss = 'container text-center fw-light text-body text-opacity-25 mt-2'
-        title = f'<h3 class="{clss}"><small>{name}</small> {sub_name}</h3>\n'
-        content = title
-        if image:
-            title = self._html_categ_title
-            title = title.replace('#title', f'<small>{name}</small> {sub_name}')
-            cover = self._html_cover.replace('#img', image).replace(
-                'height:300px;', 'height:150px;')
-            content = f'{cover}\n{title}'
-
+        content = self._get_html_cover(page, categ, image, 'cover')
         if not any(doc_path.iterdir()):
             with open(site_path/'index.html','w') as f:
                 start = self._set_active_nav_item([page], start)
