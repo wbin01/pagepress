@@ -245,10 +245,13 @@ class SetPages(object):
                 if num % 2 == 0:
                     content += '<div class="row m-0 p-0 mx-3">\n'
 
-                image = self._img_blank
+                image, img = self._img_blank, []
                 for item in (doc_path/categ).iterdir():
                     if item.is_file():
-                        image = self._img.base64(item, self._img_blank)
+                        img64 = self._img.base64(item)
+                        if img64:
+                            image, img = img64, [img64, item]
+                            break
 
                 categ_name = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', categ.upper())
                 content += categ_card.replace(
@@ -262,7 +265,7 @@ class SetPages(object):
                 
                 index_path = site_path/inode_/'index.html'
                 index_path.parent.mkdir(parents=True, exist_ok=True)
-                self._set_index_content_4_sub_categs(lang, page, categ)
+                self._set_index_content_4_sub_categs(lang, page, categ, img)
 
         pages, num, items = [], 0, []
         for doc in self._sorted(docs):
@@ -289,7 +292,7 @@ class SetPages(object):
         self._all_docs[lang].extend(items)
 
     def _set_index_content_4_sub_categs(
-            self, lang: str, page: str, categ: str) -> None:
+            self, lang: str, page: str, categ: str, image: list = None) -> None:
         page_ = self._normalized_name(page)
         categ_ = self._normalized_name(categ)
         content = ''
@@ -309,7 +312,14 @@ class SetPages(object):
         name = f'<small {clss}>{self._display_name(page).upper()} /</small>'
         sub_name = self._display_name(categ).upper()
         clss = 'container text-center fw-light text-body text-opacity-25 mt-2'
-        content = f'<h3 class="{clss}"><small>{name}</small> {sub_name}</h3>\n'
+        title = f'<h3 class="{clss}"><small>{name}</small> {sub_name}</h3>\n'
+        content = title
+        if image and image[1].stem == 'cover':
+            title = self._html_title
+            title = title.replace('#title', f'<small>{name}</small> {sub_name}')
+            cover = self._html_cover.replace('#img', image[0]).replace(
+                'height:300px;', 'height:150px;')
+            content = f'<div>\n{cover}\n{title}</div>\n'
 
         if not any(doc_path.iterdir()):
             with open(site_path/'index.html','w') as f:
