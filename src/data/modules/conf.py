@@ -74,20 +74,29 @@ class Conf(object):
 
     def user(self, name: str, key: str) -> str:
         """..."""
+        value = None
         if f'[{name}]' in self._conf_user.content:
             if key in self._conf_user.content[f'[{name}]']:
-                return self._conf_user.content[f'[{name}]'][key]
+                value = self._conf_user.content[f'[{name}]'][key]
 
-        value = self._conf_page.content[f'[{name}]'][key]
+        if not value:
+            value = self._conf_page.content[f'[{name}]'][key]
 
-        if f'[{name}]' not in self._conf_user.content:
-            self._conf_user.content[f'[{name}]'] = {key: value}
-        else:
-            self._conf_user.content[f'[{name}]'][key] = value
-        self._conf_user.update_file()
+            if f'[{name}]' not in self._conf_user.content:
+                self._conf_user.content[f'[{name}]'] = {key: value}
+            else:
+                self._conf_user.content[f'[{name}]'][key] = value
+            self._conf_user.update_file()
 
-        if value == 'True': value = True
-        if value == 'False': value = False
+        if value.lower() == 'true':
+            value = True
+        elif value.lower() == 'false':
+            value = False
+        elif '.' in value and value.replace('.', '').isdigit():
+            value = float(value)
+        elif value.isdigit():
+            value = int(value)
+        
         return value
 
     def _langs_code(self) -> list:

@@ -20,9 +20,9 @@ class SetPages(object):
         self._path_site = self._conf.path_site
         self._path_data = self._conf.path_data
         self._path_html = self._conf.path_html
-        self._lang = self._conf._lang
 
-        self._img_noise = self._img.base64(self._path_data/'img64'/'noise.txt')
+        noise = 'noise.txt' if self._conf.user('Cover', 'noise') else 'no.txt'
+        self._img_noise = self._img.base64(self._path_data/'img64'/noise)
         self._img_blank = self._img.base64(self._path_data/'img64'/'blank.txt')
 
         cover = self._html_base('cover').replace('#image', self._img_noise)
