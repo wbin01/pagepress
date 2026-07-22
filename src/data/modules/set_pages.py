@@ -246,12 +246,12 @@ class SetPages(object):
                     content += '<div class="row m-0 p-0 mx-3">\n'
 
                 image, img = self._img_blank, []
-                for item in (doc_path/categ).iterdir():
-                    if item.is_file():
-                        img64 = self._img.base64(item)
-                        if img64:
-                            image, img = img64, [img64, item]
-                            break
+                for i in (doc_path/categ).iterdir():
+                    if i.is_file() and i.suffix in self._img.supported_ext:
+                        if i.stem == 'card':
+                            image = self._img.base64(i)
+                        elif i.stem == 'cover':
+                            img = self._img.base64(i)
 
                 categ_name = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', categ.upper())
                 content += categ_card.replace(
@@ -280,6 +280,20 @@ class SetPages(object):
                 content, num = '', 0
 
         if content and content not in pages: pages.append(content)
+
+        image = self._img_blank
+        for i in doc_path.iterdir():
+            if i.is_file() and i.suffix in self._img.supported_ext:
+                img64 = self._img.base64(i)
+                if img64 and i.stem == 'cover':
+                    title = self._html_title.replace(
+                        '#title', self._display_name(page).upper())
+                    cover = self._html_cover.replace(
+                        '#img', img64).replace(
+                        'height:300px;', 'height:150px;')
+                    start += f'<div>\n{cover}\n{title}</div>\n'
+                    break
+
         for num, content in enumerate(pages):
             num += 1
             content = self._set_pagination(content, num, len(pages))
@@ -292,7 +306,7 @@ class SetPages(object):
         self._all_docs[lang].extend(items)
 
     def _set_index_content_4_sub_categs(
-            self, lang: str, page: str, categ: str, image: list = None) -> None:
+            self, lang: str, page: str, categ: str, image: str) -> None:
         page_ = self._normalized_name(page)
         categ_ = self._normalized_name(categ)
         content = ''
@@ -314,10 +328,10 @@ class SetPages(object):
         clss = 'container text-center fw-light text-body text-opacity-25 mt-2'
         title = f'<h3 class="{clss}"><small>{name}</small> {sub_name}</h3>\n'
         content = title
-        if image and image[1].stem == 'cover':
+        if image:
             title = self._html_title
             title = title.replace('#title', f'<small>{name}</small> {sub_name}')
-            cover = self._html_cover.replace('#img', image[0]).replace(
+            cover = self._html_cover.replace('#img', image).replace(
                 'height:300px;', 'height:150px;')
             content = f'<div>\n{cover}\n{title}</div>\n'
 

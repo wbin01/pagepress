@@ -8,7 +8,7 @@ class Img(object):
     """..."""
     def __init__(self) -> None:
         """..."""
-        self._supported_ext = ['.png', '.jpg']
+        self._supported_ext = ['.png', '.jpg', '.jpeg']
 
     @property
     def supported_ext(self) -> list:
