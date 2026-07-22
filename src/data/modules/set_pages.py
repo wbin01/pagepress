@@ -20,6 +20,7 @@ class SetPages(object):
         self._path_site = self._conf.path_site
         self._path_data = self._conf.path_data
         self._path_html = self._conf.path_html
+        self._lang = self._conf._lang
 
         self._img_noise = self._img.base64(self._path_data/'img64'/'noise.txt')
         self._img_blank = self._img.base64(self._path_data/'img64'/'blank.txt')
@@ -279,9 +280,8 @@ class SetPages(object):
                 card_img = self._get_cover_image(doc_path/categ, 'card')
                 if not card_img: card_img = self._img_blank
 
-                categ_name = re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', categ.upper())
                 content += categ_card.replace(
-                    '#title', categ_name).replace(
+                    '#title', self._display_name(categ.upper())).replace(
                     '#link', inode_ + '/index.html').replace(
                     '#img_src', card_img).replace(
                     '#img_noise', self._img_noise)
@@ -422,13 +422,13 @@ class SetPages(object):
             with open(self._path_site/lang/'index.html', 'r') as file_:
                 index = file_.read()
 
-            li_itens, langs = '', self._path_docs/lang
-            for node in self._sorted(langs, True):
+            li_itens = ''
+            for node in self._sorted(self._path_docs/lang, True):
                 node_ = self._normalized_name(node)
-                if (langs/node).is_dir():
+                if (self._path_docs/lang/node).is_dir():
                     li_itens += li.replace(
                         '#', f'href="{node_}/index.html"').replace(
-                        '*', re.sub(r'^\d+ +-|^\d+-|^\d+ ', '', node))
+                        '*', self._display_name(node))
 
             new_index = index.replace('<!-- NAV ITEM -->', li_itens.strip())
             with open(self._path_site/lang/'index.html', 'w+') as f:
