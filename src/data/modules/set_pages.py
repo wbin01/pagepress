@@ -28,6 +28,7 @@ class SetPages(object):
         title = self._html_base('title')
         self._html_cover, self._html_cover_alt = cover.split('<!-- / -->')
         self._html_title, self._html_title_alt = title.split('<!-- / -->')
+        self._html_categ_title = self._html_base('categ-title')
         self._html_top, self._html_end = self._html_base()
         self._html_card = self._html_base('card')
 
@@ -260,7 +261,7 @@ class SetPages(object):
                     '#img_src', image).replace(
                     '#img_noise', self._img_noise)
 
-                if num % 2 != 0 or len(dirs) == 1:
+                if num % 2 != 0 or len(dirs) == 1 or num == len(dirs) - 1:
                     content += '\n</div>\n'
                 
                 index_path = site_path/inode_/'index.html'
@@ -281,17 +282,15 @@ class SetPages(object):
 
         if content and content not in pages: pages.append(content)
 
-        image = self._img_blank
         for i in doc_path.iterdir():
             if i.is_file() and i.suffix in self._img.supported_ext:
                 img64 = self._img.base64(i)
                 if img64 and i.stem == 'cover':
-                    title = self._html_title.replace(
-                        '#title', self._display_name(page).upper())
-                    cover = self._html_cover.replace(
-                        '#img', img64).replace(
-                        'height:300px;', 'height:150px;')
-                    start += f'<div>\n{cover}\n{title}</div>\n'
+                    title = self._display_name(page).upper()
+                    title = self._html_categ_title.replace('#title', title)
+                    cover = self._html_cover.replace('#img', img64)
+                    cover = cover.replace('height:300px;', 'height:150px;')
+                    start += f'{cover}\n{title}'
                     break
 
         for num, content in enumerate(pages):
@@ -329,11 +328,11 @@ class SetPages(object):
         title = f'<h3 class="{clss}"><small>{name}</small> {sub_name}</h3>\n'
         content = title
         if image:
-            title = self._html_title
+            title = self._html_categ_title
             title = title.replace('#title', f'<small>{name}</small> {sub_name}')
             cover = self._html_cover.replace('#img', image).replace(
                 'height:300px;', 'height:150px;')
-            content = f'<div>\n{cover}\n{title}</div>\n'
+            content = f'{cover}\n{title}'
 
         if not any(doc_path.iterdir()):
             with open(site_path/'index.html','w') as f:
