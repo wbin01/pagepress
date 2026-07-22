@@ -225,6 +225,8 @@ class SetPages(object):
         # INDEX
         if single: return
         for lang in self._conf.langs:
+            with open(self._path_site/lang/'index.html', 'r') as f:
+                start, end = f.read().split('<!-- CONTENT -->')
             
             pages, content, num = [], '', 0
             for html in self._set_index_items_list(lang):
