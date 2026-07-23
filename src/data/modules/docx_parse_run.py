@@ -107,10 +107,15 @@ class Run(object):
                 h = re.findall(r'height:(\d+)', self._xml_shape)
                 if h: height = int(int(h[0]) * (96 / 72))
 
+            title = re.findall(r'title=\"([^\"]*)\"', self._xml, re.DOTALL)
+            descr = re.findall(r'descr=\"([^\"]*)\"', self._xml, re.DOTALL)
+
             properties['src'] = src
             properties['width'] = width
             properties['height'] = height
             self._meta['extension'] = ext
+            self._meta['title'] = title[0] if title else ''
+            self._meta['descr'] = descr[0] if descr else ''
 
         elif self._type == 'Draw':
             pass
