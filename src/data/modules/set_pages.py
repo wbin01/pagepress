@@ -21,7 +21,8 @@ class SetPages(object):
         self._path_data = self._conf.path_data
         self._path_html = self._conf.path_html
 
-        noise = 'noise.txt' if self._conf.user('Cover', 'noise') else 'no.txt'
+        noise = 'noise.txt'
+        if not self._conf.user('Category:Cover', 'noise'): noise = 'no.txt'
         self._img_noise = self._img.base64(self._path_data/'img64'/noise)
         self._img_blank = self._img.base64(self._path_data/'img64'/'blank.txt')
 
@@ -170,9 +171,7 @@ class SetPages(object):
     def _get_cover_image(self, path: Path, mode: str) -> str:
         image = ''
         for i in path.iterdir():
-            if i.suffix == '.svg':
-                pass
-            elif i.is_file() and i.suffix in self._img.supported_ext:
+            if i.is_file() and i.suffix in self._img.supported_ext:
                 if i.stem == mode:
                     image = self._img.base64(i)
                     break
@@ -189,24 +188,34 @@ class SetPages(object):
             categ = categ + sub_categ
             title = f'<h3 class="{clss}">{categ}</h3>\n'
         cover = ''
-        if image and image.startswith('data:image/'):
+        if image:
             html_title = self._html_categ_title
+            key = 'Category:Cover'
+            if not self._conf.user(key, 'text_shadow'):
+                html_title = html_title.replace(
+                    'text-shadow: 2px 2px 5px #000; ', '')
+
+            text_color = self._conf.user(key, 'text_color')
+            if text_color == 'dark':
+                html_title = html_title.replace('text-light', 'text-dark')
+
+            elif text_color == 'auto':
+                html_title = html_title.replace('text-light', 'text-body')
+
+            elif text_color != 'light':
+                html_title = html_title.replace(
+                    'style="', f'style="color:{text_color};')
+
+            if not self._conf.user(key, 'shadow'):
+                html_title = html_title.replace(
+                    'background: #000000; background: linear-gradient(0deg, '
+                    '#00000080 0%, #00000040 60%, #00000005 100%);', '')
+
             html_title = html_title.replace('#title', categ)
             html_cover = self._html_cover.replace('#img', image)
             html_cover = html_cover.replace('height:300px;', 'height:150px;')
             cover = f'{html_cover}\n{html_title}'
             return cover
-        if image and '</svg>' in image:
-            return f"""
-            <div class="position-relative" style="width:100%; height:150;">
-             {image}
-            </div>
-            <div class="container-lg position-relative">
-             <div class="position-absolute top-100 start-0 p-2 ms-2">
-             {categ}
-             </div>
-            </div>
-            """.replace(' '*11, '')
         return title
 
     def _set_content_for_home_pages(self) -> None:
