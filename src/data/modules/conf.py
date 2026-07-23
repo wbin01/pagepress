@@ -74,6 +74,7 @@ class Conf(object):
 
     def user(self, name: str, key: str) -> str:
         """..."""
+        key = key.replace('_', '-').strip()
         value = None
         if f'[{name}]' in self._conf_user.content:
             if key in self._conf_user.content[f'[{name}]']:

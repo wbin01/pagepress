@@ -72,11 +72,11 @@ class SetPages(object):
         key = 'Category:Cover'
         if image:
             html_title = categ_card
-            if not self._conf.user(key, 'title_shadow'):
+            if not self._conf.user(key, 'title-shadow'):
                 categ_card = categ_card.replace(
                     'text-shadow: 2px 2px 5px #000;', '')
 
-            text_color = self._conf.user(key, 'title_color')
+            text_color = self._conf.user(key, 'title-color')
             if text_color == 'dark':
                 categ_card = categ_card.replace('text-light', 'text-dark')
 
@@ -92,7 +92,7 @@ class SetPages(object):
                     'background: #000000; background: linear-gradient(0deg, '
                     '#00000080 0%, #00000040 30%, #00000005 80%);', '')
 
-            if not self._conf.user(key, 'display_title'):
+            if not self._conf.user(key, 'display-title'):
                 categ = ''
                 categ_card = categ_card.replace(
                     'text-shadow: 2px 2px 5px #000;', '')
@@ -119,11 +119,11 @@ class SetPages(object):
         key = 'Category:Cover'
         if image:
             html_title = self._html_categ_title
-            if not self._conf.user(key, 'title_shadow'):
+            if not self._conf.user(key, 'title-shadow'):
                 html_title = html_title.replace(
                     'text-shadow: 2px 2px 5px #000;', '')
 
-            text_color = self._conf.user(key, 'title_color')
+            text_color = self._conf.user(key, 'title-color')
             if text_color == 'dark':
                 html_title = html_title.replace('text-light', 'text-dark')
 
@@ -139,7 +139,7 @@ class SetPages(object):
                     'background: #000000; background: linear-gradient(0deg, '
                     '#00000080 0%, #00000040 60%, #00000005 100%);', '')
 
-            if not self._conf.user(key, 'display_title'):
+            if not self._conf.user(key, 'display-title'):
                 categ = ''
                 html_title = html_title.replace(
                     'text-shadow: 2px 2px 5px #000;', '')
@@ -231,8 +231,8 @@ class SetPages(object):
         name = self._conf.user('Brand', 'name')
         logo = (PATH/self._conf.user('Brand', 'logo')).as_posix()
         favicon = (PATH/self._conf.user('Brand', 'favicon')).as_posix()
-        light_subtitle = self._conf.user('Post:LightTheme', 'subtitle_color')
-        dark_subtitle = self._conf.user('Post:DarkTheme', 'subtitle_color')
+        light_subtitle = self._conf.user('Post:LightTheme', 'subtitle-color')
+        dark_subtitle = self._conf.user('Post:DarkTheme', 'subtitle-color')
 
         self._html_top = self._html_top.replace(
             '#brand', logo).replace(
