@@ -170,14 +170,15 @@ class SetPages(object):
     def _get_cover_image(self, path: Path, mode: str) -> str:
         image = ''
         for i in path.iterdir():
-            if i.is_file() and i.suffix in self._img.supported_ext:
+            if i.suffix == '.svg':
+                pass
+            elif i.is_file() and i.suffix in self._img.supported_ext:
                 if i.stem == mode:
                     image = self._img.base64(i)
                     break
         return image
 
-    def _get_html_cover(
-            self, categ: str, sub_categ: str, image: str, mode: str) -> str:
+    def _get_html_cover(self, categ: str, sub_categ: str, image: str) -> str:
         clss = 'container text-center fw-light text-body text-opacity-25 mt-2'
         categ = self._display_name(categ).upper()
         title = ''
@@ -188,13 +189,24 @@ class SetPages(object):
             categ = categ + sub_categ
             title = f'<h3 class="{clss}">{categ}</h3>\n'
         cover = ''
-        if image:
+        if image and image.startswith('data:image/'):
             html_title = self._html_categ_title
             html_title = html_title.replace('#title', categ)
             html_cover = self._html_cover.replace('#img', image)
             html_cover = html_cover.replace('height:300px;', 'height:150px;')
             cover = f'{html_cover}\n{html_title}'
             return cover
+        if image and '</svg>' in image:
+            return f"""
+            <div class="position-relative" style="width:100%; height:150;">
+             {image}
+            </div>
+            <div class="container-lg position-relative">
+             <div class="position-absolute top-100 start-0 p-2 ms-2">
+             {categ}
+             </div>
+            </div>
+            """.replace(' '*11, '')
         return title
 
     def _set_content_for_home_pages(self) -> None:
@@ -312,7 +324,7 @@ class SetPages(object):
             pages.append(content)
 
         image = self._get_cover_image(doc_path, 'cover')
-        start += self._get_html_cover(page, '', image, 'cover')
+        start += self._get_html_cover(page, '', image)
         for num, content in enumerate(pages):
             num += 1
             content = self._set_pagination(content, num, len(pages))
@@ -340,7 +352,7 @@ class SetPages(object):
         if self._set_single_page(doc_path, site_path, start, end, page):
             return
 
-        content = self._get_html_cover(page, categ, image, 'cover')
+        content = self._get_html_cover(page, categ, image)
         if not any(doc_path.iterdir()):
             with open(site_path/'index.html','w') as f:
                 start = self._set_active_nav_item([page], start)
