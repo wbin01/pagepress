@@ -64,6 +64,46 @@ class SetPages(object):
                 break
         return image
 
+    def _get_html_card_cover(self, categ: str, image: str) -> str:
+        with open(self._path_html/'categ.html', 'r') as f:
+            categ_card, categ_card_alt = f.read().split('<!-- / -->')
+
+        categ = self._name_for_display(categ).upper()
+        key = 'Category:Cover'
+        if image:
+            html_title = categ_card
+            if not self._conf.user(key, 'title_shadow'):
+                categ_card = categ_card.replace(
+                    'text-shadow: 2px 2px 5px #000;', '')
+
+            text_color = self._conf.user(key, 'title_color')
+            if text_color == 'dark':
+                categ_card = categ_card.replace('text-light', 'text-dark')
+
+            elif text_color == 'auto':
+                categ_card = categ_card.replace('text-light', 'text-body')
+
+            elif text_color != 'light':
+                categ_card = categ_card.replace(
+                    'style="', f'style="color:{text_color};')
+
+            if not self._conf.user(key, 'shadow'):
+                categ_card = categ_card.replace(
+                    'background: #000000; background: linear-gradient(0deg, '
+                    '#00000080 0%, #00000040 30%, #00000005 80%);', '')
+
+            if not self._conf.user(key, 'display_title'):
+                categ = ''
+                categ_card = categ_card.replace(
+                    'text-shadow: 2px 2px 5px #000;', '')
+                categ_card = categ_card.replace(
+                    'background: #000000; background: linear-gradient(0deg, '
+                    '#00000080 0%, #00000040 30%, #00000005 80%);', '')
+
+        categ_card = categ_card.replace('#title', categ)
+        categ_card_alt = categ_card_alt.replace('#title', categ)
+        return categ_card, categ_card_alt
+
     def _get_html_cover(self, categ: str, sub_categ: str, image: str) -> str:
         clss = 'container text-center fw-light text-body text-opacity-25 mt-2'
         categ = self._name_for_display(categ).upper()
@@ -75,14 +115,15 @@ class SetPages(object):
             categ = categ + sub_categ
             title = f'<h3 class="{clss}">{categ}</h3>\n'
         cover = ''
+
+        key = 'Category:Cover'
         if image:
             html_title = self._html_categ_title
-            key = 'Category:Cover'
-            if not self._conf.user(key, 'text_shadow'):
+            if not self._conf.user(key, 'title_shadow'):
                 html_title = html_title.replace(
-                    'text-shadow: 2px 2px 5px #000; ', '')
+                    'text-shadow: 2px 2px 5px #000;', '')
 
-            text_color = self._conf.user(key, 'text_color')
+            text_color = self._conf.user(key, 'title_color')
             if text_color == 'dark':
                 html_title = html_title.replace('text-light', 'text-dark')
 
@@ -94,6 +135,14 @@ class SetPages(object):
                     'style="', f'style="color:{text_color};')
 
             if not self._conf.user(key, 'shadow'):
+                html_title = html_title.replace(
+                    'background: #000000; background: linear-gradient(0deg, '
+                    '#00000080 0%, #00000040 60%, #00000005 100%);', '')
+
+            if not self._conf.user(key, 'display_title'):
+                categ = ''
+                html_title = html_title.replace(
+                    'text-shadow: 2px 2px 5px #000;', '')
                 html_title = html_title.replace(
                     'background: #000000; background: linear-gradient(0deg, '
                     '#00000080 0%, #00000040 60%, #00000005 100%);', '')
@@ -316,8 +365,8 @@ class SetPages(object):
         with open(site_path/'index.html', 'r') as f:
             start, end = f.read().split('<!-- CONTENT -->')
 
-        with open(self._path_html/'categ.html', 'r') as f:
-            categ_card, categ_card_alt = f.read().split('<!-- / -->')
+        # with open(self._path_html/'categ.html', 'r') as f:
+        #     categ_card, categ_card_alt = f.read().split('<!-- / -->')
 
         if self._single_page(doc_path, site_path, start, end, page):
             return
@@ -337,6 +386,7 @@ class SetPages(object):
                     content += '<div class="row m-0 p-0 mx-3">\n'
 
                 cover_img = self._get_cover_image(doc_path/categ)
+                categ_card, categ_card_alt = self._get_html_card_cover(categ, cover_img)
                 card = categ_card if cover_img else categ_card_alt
                 content += card.replace(
                     '#title', self._name_for_display(categ.upper())).replace(
