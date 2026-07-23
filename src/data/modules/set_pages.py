@@ -22,7 +22,7 @@ class SetPages(object):
         self._path_html = self._conf.path_html
 
         noise = 'noise.txt'
-        if not self._conf.user('Category:Cover', 'noise'): noise = 'no.txt'
+        if not self._conf.user('category:cover','image-noise'):noise = 'no.txt'
         self._img_noise = self._img.base64(self._path_data/'img64'/noise)
         self._img_blank = self._img.base64(self._path_data/'img64'/'blank.txt')
 
@@ -69,7 +69,7 @@ class SetPages(object):
             categ_card, categ_card_alt = f.read().split('<!-- / -->')
 
         categ = self._name_for_display(categ).upper()
-        key = 'Category:Cover'
+        key = 'category:cover'
         if image:
             html_title = categ_card
             if not self._conf.user(key, 'title-shadow'):
@@ -87,18 +87,26 @@ class SetPages(object):
                 categ_card = categ_card.replace(
                     'style="', f'style="color:{text_color};')
 
-            if not self._conf.user(key, 'shadow'):
+            if not self._conf.user(key, 'image-shadow'):
                 categ_card = categ_card.replace(
                     'background: #000000; background: linear-gradient(0deg, '
                     '#00000080 0%, #00000040 30%, #00000005 80%);', '')
 
-            if not self._conf.user(key, 'display-title'):
+            if not self._conf.user(key, 'title-visible'):
                 categ = ''
                 categ_card = categ_card.replace(
                     'text-shadow: 2px 2px 5px #000;', '')
                 categ_card = categ_card.replace(
                     'background: #000000; background: linear-gradient(0deg, '
                     '#00000080 0%, #00000040 30%, #00000005 80%);', '')
+
+            if not self._conf.user(key, 'image-card-border'):
+                categ_card = categ_card.replace(
+                    'border border-secondary border-opacity-50', '')
+
+        if not self._conf.user(key, 'empty-card-border'):
+            categ_card_alt = categ_card_alt.replace(
+                'border border-secondary border-opacity-50', '')
 
         categ_card = categ_card.replace('#title', categ)
         categ_card_alt = categ_card_alt.replace('#title', categ)
@@ -116,7 +124,7 @@ class SetPages(object):
             title = f'<h3 class="{clss}">{categ}</h3>\n'
         cover = ''
 
-        key = 'Category:Cover'
+        key = 'category:cover'
         if image:
             html_title = self._html_categ_title
             if not self._conf.user(key, 'title-shadow'):
@@ -134,12 +142,12 @@ class SetPages(object):
                 html_title = html_title.replace(
                     'style="', f'style="color:{text_color};')
 
-            if not self._conf.user(key, 'shadow'):
+            if not self._conf.user(key, 'image-shadow'):
                 html_title = html_title.replace(
                     'background: #000000; background: linear-gradient(0deg, '
                     '#00000080 0%, #00000040 60%, #00000005 100%);', '')
 
-            if not self._conf.user(key, 'display-title'):
+            if not self._conf.user(key, 'title-visible'):
                 categ = ''
                 html_title = html_title.replace(
                     'text-shadow: 2px 2px 5px #000;', '')
@@ -228,11 +236,11 @@ class SetPages(object):
         return new_name.replace('--', '-') + ext
 
     def _nav_brand(self) -> None:
-        name = self._conf.user('Brand', 'name')
-        logo = (PATH/self._conf.user('Brand', 'logo')).as_posix()
-        favicon = (PATH/self._conf.user('Brand', 'favicon')).as_posix()
-        light_subtitle = self._conf.user('Post:LightTheme', 'subtitle-color')
-        dark_subtitle = self._conf.user('Post:DarkTheme', 'subtitle-color')
+        name = self._conf.user('brand', 'name')
+        logo = (PATH/self._conf.user('brand', 'logo')).as_posix()
+        favicon = (PATH/self._conf.user('brand', 'favicon')).as_posix()
+        light_subtitle = self._conf.user('post:light-theme', 'subtitle-color')
+        dark_subtitle = self._conf.user('post:dark-theme', 'subtitle-color')
 
         self._html_top = self._html_top.replace(
             '#brand', logo).replace(
