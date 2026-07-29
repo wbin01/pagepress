@@ -56,63 +56,7 @@ class SetPages(object):
             elif item.is_dir():
                 shutil.rmtree(item)
 
-    def _get_cover_image(self, path: Path) -> str:
-        image = ''
-        for i in path.iterdir():
-            if i.is_file() and i.suffix.lower() in self._img.supported_ext:
-                image = self._img.base64(i)
-                break
-        return image
-
-    def _get_html_card_cover(self, categ: str, image: str) -> str:
-        with open(self._path_html/'categ.html', 'r') as f:
-            categ_card, categ_card_alt = f.read().split('<!-- / -->')
-
-        categ = self._name_for_display(categ).upper()
-        key = 'category:cover'
-        if image:
-            html_title = categ_card
-            if not self._conf.user(key, 'title-shadow'):
-                categ_card = categ_card.replace(
-                    'text-shadow: 2px 2px 5px #000;', '')
-
-            text_color = self._conf.user(key, 'title-color')
-            if text_color == 'dark':
-                categ_card = categ_card.replace('text-light', 'text-dark')
-
-            elif text_color == 'auto':
-                categ_card = categ_card.replace('text-light', 'text-body')
-
-            elif text_color != 'light':
-                categ_card = categ_card.replace(
-                    'style="', f'style="color:{text_color};')
-
-            if not self._conf.user(key, 'image-shadow'):
-                categ_card = categ_card.replace(
-                    'background: #000000; background: linear-gradient(0deg, '
-                    '#00000080 0%, #00000040 30%, #00000005 80%);', '')
-
-            if not self._conf.user(key, 'title-visible'):
-                categ = ''
-                categ_card = categ_card.replace(
-                    'text-shadow: 2px 2px 5px #000;', '')
-                categ_card = categ_card.replace(
-                    'background: #000000; background: linear-gradient(0deg, '
-                    '#00000080 0%, #00000040 30%, #00000005 80%);', '')
-
-            if not self._conf.user(key, 'image-card-border'):
-                categ_card = categ_card.replace(
-                    'border border-secondary border-opacity-50', '')
-
-        if not self._conf.user(key, 'empty-card-border'):
-            categ_card_alt = categ_card_alt.replace(
-                'border border-secondary border-opacity-50', '')
-
-        categ_card = categ_card.replace('#title', categ)
-        categ_card_alt = categ_card_alt.replace('#title', categ)
-        return categ_card, categ_card_alt
-
-    def _get_html_cover(self, categ: str, sub_categ: str, image: str) -> str:
+    def _cover(self, categ: str, sub_categ: str, image: list) -> str:
         clss = 'container text-center fw-light text-body text-opacity-25 mt-2'
         categ = self._name_for_display(categ).upper()
         title = ''
@@ -156,11 +100,68 @@ class SetPages(object):
                     '#00000080 0%, #00000040 60%, #00000005 100%);', '')
 
             html_title = html_title.replace('#title', categ)
-            html_cover = self._html_cover.replace('#img', image)
+            html_cover = self._html_cover.replace('#img', image[0])
             html_cover = html_cover.replace('height:300px;', 'height:150px;')
             cover = f'{html_cover}\n{html_title}'
             return cover
         return title
+
+    def _cover_card(self, categ: str, image: list) -> str:
+        with open(self._path_html/'categ.html', 'r') as f:
+            categ_card, categ_card_alt = f.read().split('<!-- / -->')
+
+        categ = self._name_for_display(categ).upper()
+        key = 'category:cover'
+        if image:
+            categ_card = categ_card.replace('#img_src', image[0])
+
+            if not self._conf.user(key, 'title-shadow'):
+                categ_card = categ_card.replace(
+                    'text-shadow: 2px 2px 5px #000;', '')
+
+            text_color = self._conf.user(key, 'title-color')
+            if text_color == 'dark':
+                categ_card = categ_card.replace('text-light', 'text-dark')
+
+            elif text_color == 'auto':
+                categ_card = categ_card.replace('text-light', 'text-body')
+
+            elif text_color != 'light':
+                categ_card = categ_card.replace(
+                    'style="', f'style="color:{text_color};')
+
+            if not self._conf.user(key, 'image-shadow'):
+                categ_card = categ_card.replace(
+                    'background: #000000; background: linear-gradient(0deg, '
+                    '#00000080 0%, #00000040 30%, #00000005 80%);', '')
+
+            if not self._conf.user(key, 'title-visible'):
+                categ = ''
+                categ_card = categ_card.replace(
+                    'text-shadow: 2px 2px 5px #000;', '')
+                categ_card = categ_card.replace(
+                    'background: #000000; background: linear-gradient(0deg, '
+                    '#00000080 0%, #00000040 30%, #00000005 80%);', '')
+
+            if not self._conf.user(key, 'image-card-border'):
+                categ_card = categ_card.replace(
+                    'border border-secondary border-opacity-50', '')
+
+        if not self._conf.user(key, 'empty-card-border'):
+            categ_card_alt = categ_card_alt.replace(
+                'border border-secondary border-opacity-50', '')
+
+        categ_card = categ_card.replace('#title', categ)
+        categ_card_alt = categ_card_alt.replace('#title', categ)
+        return categ_card, categ_card_alt
+
+    def _cover_image(self, path: Path) -> list:
+        image = []
+        for i in path.iterdir():
+            if i.is_file() and i.suffix.lower() in self._img.supported_ext:
+                image = [self._img.base64(i)]
+                break
+        return image
 
     def _home_pages(self) -> None:
         for lang in self._conf.langs:
@@ -393,13 +394,12 @@ class SetPages(object):
                 if num % 2 == 0:
                     content += '<div class="row m-0 p-0 mx-3">\n'
 
-                cover_img = self._get_cover_image(doc_path/categ)
-                categ_card, categ_card_alt = self._get_html_card_cover(categ, cover_img)
+                cover_img = self._cover_image(doc_path/categ)
+                categ_card, categ_card_alt = self._cover_card(categ, cover_img)
                 card = categ_card if cover_img else categ_card_alt
                 content += card.replace(
                     '#title', self._name_for_display(categ.upper())).replace(
                     '#link', inode_ + '/index.html').replace(
-                    '#img_src', cover_img).replace(
                     '#img_noise', self._img_noise)
 
                 if num % 2 != 0 or len(dirs) == 1 or num == len(dirs) - 1:
@@ -424,8 +424,8 @@ class SetPages(object):
         if content and content not in pages:
             pages.append(content)
 
-        image = self._get_cover_image(doc_path)
-        start += self._get_html_cover(page, '', image)
+        image = self._cover_image(doc_path)
+        start += self._cover(page, '', image)
         for num, content in enumerate(pages):
             num += 1
             content = self._pagination(content, num, len(pages))
@@ -453,7 +453,7 @@ class SetPages(object):
         if self._single_page(doc_path, site_path, start, end, page):
             return
 
-        content = self._get_html_cover(page, categ, image)
+        content = self._cover(page, categ, image)
         if not any(doc_path.iterdir()):
             with open(site_path/'index.html','w') as f:
                 start = self._update_nav_active_item([page], start)
