@@ -21,16 +21,20 @@ class SetPages(object):
         self._path_data = self._conf.path_data
         self._path_html = self._conf.path_html
 
-        noise = 'noise.txt'
-        if not self._conf.user('category:cover','image-noise'):noise = 'no.txt'
+        noise = 'noise-blank.txt'
+        if self._conf.user('category:cover','image-noise'): noise = 'noise.txt'
         self._img_noise = self._img.base64(self._path_data/'img64'/noise)
+
+        noise = 'noise-blank.txt'
+        if self._conf.user('post:cover','image-noise'): noise = 'noise.txt'
+        self._post_noise = self._img.base64(self._path_data/'img64'/noise)
+
         self._img_blank = self._img.base64(self._path_data/'img64'/'blank.txt')
 
-        cover = self._html_base('cover').replace('#image', self._img_noise)
-        title = self._html_base('title')
-        self._html_cover = cover.split('<!-- / -->')
-        self._html_title, self._html_title_alt = title.split('<!-- / -->')
-        self._html_categ = self._html_base('categ').split('<!-- / -->')
+        self._html_cover = self._html_base('cover')
+        self._html_post_cover = self._html_base('post-cover')
+        self._html_title = self._html_base('title')
+        self._html_categ = self._html_base('categ')
         self._html_categ_title = self._html_base('categ-title')
         self._html_top, self._html_end = self._html_base()
         self._html_card = self._html_base('card')
@@ -113,7 +117,7 @@ class SetPages(object):
             return cover
         return title
 
-    def _cover_card(self, categ: str, image: list) -> str:
+    def _cover_card(self, categ: str, image: list, post: bool = False) -> str:
         categ_card, categ_card_alt = self._html_categ[0], self._html_categ[1]
         categ = self._name_for_display(categ).upper()
         key = 'category:cover'
@@ -202,14 +206,20 @@ class SetPages(object):
                     with open(path, 'w') as file_:
                         file_.write(html)
 
-    def _html_base(self, path: str = '') -> list:
-        path = self._path_html/f'{path}.html'
-        if path.is_file():
-            with open(path, 'r') as f: return f.read()
+    def _html_base(self, file_name: str = '') -> list:
+        path = self._path_html/f'{file_name}.html'
+        if not path.is_file():
+            path = self._path_html/'index.html'
 
-        with open(self._path_html/'index.html', 'r') as file_:
-            html = file_.read()
-        return html.split('<!-- / -->')
+        with open(path, 'r') as file_:
+            html = file_.read().replace(
+                '#img_noise', self._img_noise).replace(
+                '#post_noise', self._post_noise)
+
+        if '<!-- / -->' in html:
+            html = html.split('<!-- / -->')
+        
+        return html
 
     def _index_items(self, lang) -> list:
         data_paths = self._path_data/f'{lang}-paths.txt'
@@ -621,9 +631,9 @@ class SetPages(object):
             self, html: DocxHTML, site_path: PATH, start: str, end: str,
             categ: list = [], single: bool = False) -> str:
         
-        cover, title = self._html_cover[0], self._html_title
+        cover, title = self._html_post_cover[0], self._html_title[0]
         if not html.cover:
-            cover, title = self._html_cover[1], self._html_title_alt
+            cover, title = self._html_post_cover[1], self._html_title[1]
 
         categs = ''
         if categ:
@@ -655,8 +665,7 @@ class SetPages(object):
             '#categs', categs).replace(
             '#title', html.title_text).replace(
             '#link', doc_name).replace(
-            '#img_src', html.cover_src).replace(
-            '#img_noise', self._img_noise)
+            '#img_src', html.cover_src)
 
         link = site_path.as_posix().replace(self._path_site.as_posix(), '')[1:]
         html.card = content
