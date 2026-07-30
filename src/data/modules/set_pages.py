@@ -28,8 +28,9 @@ class SetPages(object):
 
         cover = self._html_base('cover').replace('#image', self._img_noise)
         title = self._html_base('title')
-        self._html_cover, self._html_cover_alt = cover.split('<!-- / -->')
+        self._html_cover = cover.split('<!-- / -->')
         self._html_title, self._html_title_alt = title.split('<!-- / -->')
+        self._html_categ = self._html_base('categ').split('<!-- / -->')
         self._html_categ_title = self._html_base('categ-title')
         self._html_top, self._html_end = self._html_base()
         self._html_card = self._html_base('card')
@@ -100,20 +101,30 @@ class SetPages(object):
                     '#00000080 0%, #00000040 60%, #00000005 100%);', '')
 
             html_title = html_title.replace('#title', categ)
-            html_cover = self._html_cover.replace('#img', image[0])
+
+            if len(image) == 2:
+                html_cover = self._html_cover[2].replace(
+                    '#img_dark', image[1]).replace('#img', image[0])
+            else:
+                html_cover = self._html_cover[0].replace('#img', image[0])
+
             html_cover = html_cover.replace('height:300px;', 'height:150px;')
             cover = f'{html_cover}\n{html_title}'
             return cover
         return title
 
     def _cover_card(self, categ: str, image: list) -> str:
-        with open(self._path_html/'categ.html', 'r') as f:
-            categ_card, categ_card_alt = f.read().split('<!-- / -->')
-
+        categ_card, categ_card_alt = self._html_categ[0], self._html_categ[1]
         categ = self._name_for_display(categ).upper()
         key = 'category:cover'
         if image:
-            categ_card = categ_card.replace('#img_src', image[0])
+            if len(image) == 2:
+                categ_card = self._html_categ[2].replace(
+                    '#img_dark', image[1]).replace(
+                    '#img_noise', self._img_noise).replace('#img', image[0])
+            else:
+                categ_card = categ_card.replace('#img_src', image[0]).replace(
+                    '#img_noise', self._img_noise)
 
             if not self._conf.user(key, 'title-shadow'):
                 categ_card = categ_card.replace(
@@ -156,12 +167,25 @@ class SetPages(object):
         return categ_card, categ_card_alt
 
     def _cover_image(self, path: Path) -> list:
-        image = []
+        image = image_dark = None
         for i in path.iterdir():
-            if i.is_file() and i.suffix.lower() in self._img.supported_ext:
-                image = [self._img.base64(i)]
+            if image and image_dark:
                 break
-        return image
+
+            if i.is_file() and i.suffix.lower() in self._img.supported_ext:
+                img = self._img.base64(i)
+                if 'dark' in i.stem.lower():
+                    image_dark = img
+                else:
+                    image = img
+
+        if not image and image_dark:
+            image = image_dark
+        
+        img = []
+        if image: img.append(image)
+        if image_dark: img.append(image_dark)
+        return img
 
     def _home_pages(self) -> None:
         for lang in self._conf.langs:
@@ -373,9 +397,6 @@ class SetPages(object):
 
         with open(site_path/'index.html', 'r') as f:
             start, end = f.read().split('<!-- CONTENT -->')
-
-        # with open(self._path_html/'categ.html', 'r') as f:
-        #     categ_card, categ_card_alt = f.read().split('<!-- / -->')
 
         if self._single_page(doc_path, site_path, start, end, page):
             return
@@ -600,9 +621,9 @@ class SetPages(object):
             self, html: DocxHTML, site_path: PATH, start: str, end: str,
             categ: list = [], single: bool = False) -> str:
         
-        cover, title = self._html_cover, self._html_title
+        cover, title = self._html_cover[0], self._html_title
         if not html.cover:
-            cover, title = self._html_cover_alt, self._html_title_alt
+            cover, title = self._html_cover[1], self._html_title_alt
 
         categs = ''
         if categ:
